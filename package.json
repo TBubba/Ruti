@@ -1,0 +1,22 @@
+{
+  "name": "ruti",
+  "version": "0.0.1",
+  "description": "Runtime type checking",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "test": "jest"
+  },
+  "devDependencies": {
+    "@types/jest": "^26.0.5",
+    "jest": "^26.1.0",
+    "ts-jest": "^26.1.3",
+    "typescript": "^3.9.7"
+  },
+  "author": "Jesper Gustafsson",
+  "license": "UNLICENSED",
+  "files": [
+    "/dist"
+  ]
+}
