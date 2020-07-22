@@ -1,4 +1,4 @@
-import { FromTTypeArg, FromTTypeString, TArgNode, TNode, TType, TTypePrim, create_template, merge_state } from '../src';
+import { create_template, FromTTypeArg, FromTTypeString, merge_state, TArgNode, TNode, TType, TTypePrim } from '../src';
 import { forEachCombo, forEachUniqueCombo } from '../tooling/loop';
 
 const advanced = ['object', 'array'] as const;

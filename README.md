@@ -77,7 +77,7 @@ This generates a ``template`` from an ``arg``. The purpose is to make the type d
 
 * ``arg``: Arg to generate a template from.
 
-**Returns** A ``template`` corresponding to ``arg``.
+**Returns** A ``template`` corresponding to ``arg``. (TODO: Be more specific & list edge cases)
 
 **Throws** if ...
 
@@ -92,7 +92,7 @@ Merge ``b`` into ``a`` and return the result. No argument is modified by this fu
 * ``template``: Template that ``a`` already conforms to, and ``b`` is compared against.
 * ``a``: Current state.
 * ``b``: State to apply to ``a``.
-* ``opts``: Options for how to apply the update. This is applied recursively. (Optional)
+* ``opts``: Options for how to merge the states. These options are applied to child objects recursively. (Optional)
 
 **Returns** ...
 
@@ -103,10 +103,10 @@ Merge ``b`` into ``a`` and return the result. No argument is modified by this fu
 
 **Throws** if ...
 
-* ``b`` is not a valid type of ``template``.
-* ``b`` is an array, and contains a type that is not listed in ``template.contents``.
-* ``b`` is an object, and contains a property not listed in ``template.children`` (unless ``opts.ignore_extra`` is ``true``).
-* ``b`` is an object, and contains a property that is listed in ``template.children`` but is not of the same type.
+* ``b`` is not of a type listed in ``template.types``.
+* ``b`` is an array, and contains a value of a type not that is not listed in ``template.contents``.
+* ``b`` is an object, and contains a property that is not listed in ``template.children`` (unless ``opts.ignore_extra`` is ``true``).
+* ``b`` is an object, and contains a property that is listed in ``template.children``, but the types of the properties does not match.
 
 ## Arg structure
 
@@ -135,7 +135,8 @@ Each value can be one of the following:
 * An object with primitive or advanced types
   - Example: ``{ x: 'number' }`` => ``{ x: number }``
   - Example: ``{ y: [['string']] }`` => ``{ y: string[] }``
+  - Example: ``{ z: { w: 'string' } }`` => ``{ z: { w: string } }``
 
 Notes:
-* Only primitive types can be used in unions (you must not use ``objects`` or ``arrays`` in unions).
+* Unions can only contain at most one object or array.
 * Arrays only support primitive types (no nested arrays and no objects).
