@@ -26,7 +26,7 @@ const person_arg = {
 } as const;
 
 // Generate a template
-const person_template = tt_create(arg);
+const person_template = create_template(arg);
 
 // Optional: Generate a type
 type Person = FromTTypeArg<typeof arg>
@@ -37,19 +37,19 @@ type Person = FromTTypeArg<typeof arg>
 ```ts
 // Create initial state
 const person: Person = {
-  name: 'Aaron',
+  name: 'Peter',
   age: 30,
   address: {
     street: 'Somewhere 2',
     city: 'Someplace',
     zip_code: 12345,
   },
-  nicknames: ['A Aron', 'oi'],
+  nicknames: ['Pete', 'Big P'],
 };
 
 // Update state
 // Note: This does not manipulate "person", instead it returns a copy
-const updated_person = tt_update(person_template, person, { age: 31 });
+const updated_person = merge_state(person_template, person, { age: 31 });
 
 // person.age === 30
 // updated_person.age === 31
@@ -69,7 +69,7 @@ Note: ``Arg`` and ``State`` are not very fitting terms. They should be replaced.
 
 ## Functions
 
-### ``tt_create(arg)``
+### ``create_template(arg)``
 
 This generates a ``template`` from an ``arg``. The purpose is to make the type declarations more concise and readable (and also to make it easier to generate TypeScript types from). This function is optional, you can write templates by hand or load them at runtime.
 
@@ -83,7 +83,7 @@ This generates a ``template`` from an ``arg``. The purpose is to make the type d
 
 * ``arg`` is not a valid **Arg**.
 
-### ``tt_update(template, a, b, opts?)``
+### ``merge_state(template, a, b, opts?)``
 
 Merge ``b`` into ``a`` and return the result. No argument is modified by this function. Objects are merged recursively (and arrays are *not*).
 

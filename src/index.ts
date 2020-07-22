@@ -65,7 +65,7 @@ export type UOpts = {
   ignore_extra?: boolean;
 }
 
-export function tt_create<T extends TArgNode<any>>(arg: T): TNode {
+export function create_template<T extends TArgNode<any>>(arg: T): TNode {
   const node: TNode = {
     types: [],
     children: undefined,
@@ -81,7 +81,7 @@ export function tt_create<T extends TArgNode<any>>(arg: T): TNode {
   else if (Array.isArray(arg)) {
     let array_index = -1;
 
-    if (arg.length === 0) { throw new Error('Emtpy union array.'); }
+    if (arg.length === 0) { throw new Error('Empty union array.'); }
 
     for (let i = 0; i < arg.length; i++) {
       const item = arg[i];
@@ -91,7 +91,7 @@ export function tt_create<T extends TArgNode<any>>(arg: T): TNode {
         if (array_index >= 0) { throw new Error(`No more than one array can be used in a union (first array index: ${array_index}, second array index: ${i}).`); }
         array_index = i;
 
-        if (item.length === 0) { throw new Error('Emtpy array.'); }
+        if (item.length === 0) { throw new Error('Empty array.'); }
 
         // Validate array types
         for (let j = 0; j < item.length; j++) {
@@ -119,10 +119,10 @@ export function tt_create<T extends TArgNode<any>>(arg: T): TNode {
     for (let i = 0; i < keys.length; i++) {
       const key = keys[i];
 
-      node.children[key] = tt_create(arg[key as keyof T] as any);
+      node.children[key] = create_template(arg[key as keyof T] as any);
     }
   }
-  // Unkown
+  // Unknown
   else {
     throw new Error(`Invalid argument.`);
   }
@@ -143,8 +143,8 @@ function isTTypePrim(value: unknown): value is TTypePrim {
 }
 
 // @TODO Make it optional to copy missing/invalid values from A (so it becomes a dif instead of a new & updated A)
-// @TODO Make it optional to throw erros when B (as an object) has properties that are missing in A (and just ignore them instead)
-export function tt_update<T>(t: TNode, a: T, b: DeepPartial<T>, opts?: UOpts): T {
+// @TODO Make it optional to throw errors when B (as an object) has properties that are missing in A (and just ignore them instead)
+export function merge_state<T>(t: TNode, a: T, b: DeepPartial<T>, opts?: UOpts): T {
   if (a === b) { return a as any; }
 
   const b_type = getTType(b);
@@ -206,7 +206,7 @@ export function tt_update<T>(t: TNode, a: T, b: DeepPartial<T>, opts?: UOpts): T
           throw new Error(`B has a key that is not present in T (key: "${key}")`);
         }
 
-        const result = tt_update(t.children[key], a_object[key] as any, b_object[key] as any, opts);
+        const result = merge_state(t.children[key], a_object[key] as any, b_object[key] as any, opts);
 
         if (a_is_not_object || !(key in a_object) || result !== a_object[key]) {
           if (!d_object) {

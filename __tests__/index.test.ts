@@ -1,4 +1,4 @@
-import { FromTTypeArg, FromTTypeString, TArgNode, TNode, TType, TTypePrim, tt_create, tt_update } from '../src';
+import { FromTTypeArg, FromTTypeString, TArgNode, TNode, TType, TTypePrim, create_template, merge_state } from '../src';
 import { forEachCombo, forEachUniqueCombo } from '../tooling/loop';
 
 const advanced = ['object', 'array'] as const;
@@ -16,17 +16,17 @@ const type_values = {
   undefined: [undefined],
 };
 
-describe('tt_create', () => {
+describe('create_template', () => {
   describe('Primitive', () => {
     test('Single primitive', () => {
       for (const type of primitives) {
-        expect(tt_create(type))
+        expect(create_template(type))
         .toEqual({ types: [type] });
       }
     });
   
     test('Empty union', () => {
-      expect(() => tt_create([]))
+      expect(() => create_template([]))
       .toThrowError();
     });
   
@@ -34,7 +34,7 @@ describe('tt_create', () => {
       for (let count = 1; count <= primitives.length; count++) {
         const arg = primitives.slice(0, count);
   
-        expect(tt_create(arg))
+        expect(create_template(arg))
         .toEqual({ types: arg });
       }
     });
@@ -44,7 +44,7 @@ describe('tt_create', () => {
         const arg = primitives.slice(0, count);
         arg.push(primitives[count - 1]);
   
-        expect(() => tt_create(arg))
+        expect(() => create_template(arg))
         .toThrowError();
       }
     });
@@ -52,7 +52,7 @@ describe('tt_create', () => {
 
   describe('Array', () => {
     test('Empty array', () => {
-      expect(() => tt_create([[]]))
+      expect(() => create_template([[]]))
       .toThrowError();
     });
   
@@ -60,7 +60,7 @@ describe('tt_create', () => {
       for (let count = 1; count <= primitives.length; count++) {
         const types = primitives.slice(0, count);
   
-        expect(tt_create([types]))
+        expect(create_template([types]))
         .toEqual({
           types: ['array'],
           contents: types,
@@ -73,20 +73,20 @@ describe('tt_create', () => {
         const types = primitives.slice(0, count);
         types.push(primitives[count - 1]);
   
-        expect(() => tt_create([types]))
+        expect(() => create_template([types]))
         .toThrowError();
       }
     });
 
     test('Union of arrays', () => {
-      expect(() => tt_create([['number'], ['string']]))
+      expect(() => create_template([['number'], ['string']]))
       .toThrowError();
     });
   });
 
   describe('Object', () => {
     test('Empty object', () => {
-      expect(tt_create({}))
+      expect(create_template({}))
       .toEqual({
         types: ['object'],
         children: {},
@@ -114,7 +114,7 @@ describe('tt_create', () => {
           };
         }
 
-        expect(tt_create(arg))
+        expect(create_template(arg))
         .toEqual(template);
       }
     });
@@ -133,12 +133,12 @@ describe('tt_create', () => {
   });
 });
 
-describe('tt_update', () => {
+describe('merge_state', () => {
   describe('Primitive', () => {
     test('Single type', () => {
       for (const type_a of primitives) {
 
-        const template = tt_create(type_a);
+        const template = create_template(type_a);
 
         for (const type_b of all_types) {
 
@@ -148,10 +148,10 @@ describe('tt_update', () => {
             for (const value_b of type_values[type_b]) {
 
               if (is_valid) {
-                expect(tt_update(template, value_a, value_b as any))
+                expect(merge_state(template, value_a, value_b as any))
                 .toStrictEqual(value_b);
               } else {
-                expect(() => tt_update(template, value_a, value_b as any))
+                expect(() => merge_state(template, value_a, value_b as any))
                 .toThrowError();
               }
 
@@ -164,7 +164,7 @@ describe('tt_update', () => {
     test('Union', () => {
       forEachUniqueCombo(primitives, 1, primitives.length, types_a => {
 
-        const template = tt_create(types_a);
+        const template = create_template(types_a);
 
         for (const type_a of types_a) {
           for (const type_b of all_types) {
@@ -175,10 +175,10 @@ describe('tt_update', () => {
               for (const value_b of type_values[type_b]) {
 
                 if (is_valid) {
-                  expect(tt_update(template, value_a, value_b as any))
+                  expect(merge_state(template, value_a, value_b as any))
                   .toStrictEqual(value_b);
                 } else {
-                  expect(() => tt_update(template, value_a, value_b as any))
+                  expect(() => merge_state(template, value_a, value_b as any))
                   .toThrowError();
                 }
 
@@ -193,12 +193,12 @@ describe('tt_update', () => {
   describe('Array', () => {
     test('Single type array - Valid values', () => {
       for (const type of primitives) {
-        const template = tt_create([[type]]);
+        const template = create_template([[type]]);
 
         // @TODO: Use "forEachUniqueCombo" for both loops here
         for (const content_a of type_values[type]) {
           for (const content_b of type_values[type]) {
-            expect(tt_update(template, [content_a], [content_b]))
+            expect(merge_state(template, [content_a], [content_b]))
             .toStrictEqual([content_b]);
           }
         }
@@ -207,7 +207,7 @@ describe('tt_update', () => {
 
     test('Single type array - Invalid values', () => {
       for (const type_a of primitives) {
-        const template = tt_create(type_a);
+        const template = create_template(type_a);
 
         for (const type_b of all_types) {
           if (type_a === type_b) { continue; } // Skip valid
@@ -216,10 +216,10 @@ describe('tt_update', () => {
             const value_a = [content_a];
 
             for (const content_b of type_values[type_b]) {
-              expect(() => tt_update(template, value_a, content_b as any))
+              expect(() => merge_state(template, value_a, content_b as any))
               .toThrowError();
 
-              expect(() => tt_update(template, value_a, [content_b] as any))
+              expect(() => merge_state(template, value_a, [content_b] as any))
               .toThrowError();
             }
           }
@@ -229,14 +229,14 @@ describe('tt_update', () => {
 
     test('Union type array - Valid values', () => {
       forEachUniqueCombo(primitives, 1, primitives.length, types_a => {
-        const template = tt_create([types_a]);
+        const template = create_template([types_a]);
 
         const value_pool: (FromTTypeArg<TTypePrim>)[] = [];
         types_a.forEach(type => { value_pool.push(...type_values[type]) });
 
         forEachCombo(value_pool, 0, types_a.length, values_a => {
           forEachCombo(value_pool, 0, types_a.length, values_b => {
-            expect(tt_update(template, values_a, values_b))
+            expect(merge_state(template, values_a, values_b))
             .toStrictEqual(values_b);
           });
         });
@@ -245,7 +245,7 @@ describe('tt_update', () => {
 
     test('Union type array - Invalid values', () => {
       forEachUniqueCombo(primitives, 1, primitives.length, types_a => {
-        const template = tt_create([types_a]);
+        const template = create_template([types_a]);
 
         const types_b = all_types.filter(type => types_a.indexOf(type as any) === -1);
 
@@ -255,7 +255,7 @@ describe('tt_update', () => {
         }
 
         forEachUniqueCombo(value_pool_b, 1, value_pool_b.length, values_b => {
-          expect(() => tt_update(template, [], values_b as any))
+          expect(() => merge_state(template, [], values_b as any))
           .toThrowError();
         });
       });
@@ -263,13 +263,13 @@ describe('tt_update', () => {
 
     test('Union type array - Mixed valid and invalid values', () => {
       forEachUniqueCombo(primitives, 1, primitives.length, types_a => {
-        const template = tt_create([types_a]);
+        const template = create_template([types_a]);
 
         for (const type_b of primitives) {
           if (types_a.indexOf(type_b) !== -1) { continue; } // Skip valid
 
           for (const value_b of type_values[type_b]) {
-            expect(() => tt_update(template, [], [value_b] as any))
+            expect(() => merge_state(template, [], [value_b] as any))
             .toThrowError();
           }
         }
@@ -279,21 +279,21 @@ describe('tt_update', () => {
 
   describe('Object', () => {
     test('Empty object', () => {
-      const template = tt_create({});
+      const template = create_template({});
 
-      expect(tt_update(template, {}, {}))
+      expect(merge_state(template, {}, {}))
       .toStrictEqual({});
       
       for (const type of all_types) {
         for (const value of type_values[type]) {
-          expect(() => tt_update(template, {}, { x: value }))
+          expect(() => merge_state(template, {}, { x: value }))
           .toThrowError();
         }
       }
       
       for (const type of all_types) {
         for (const value of type_values[type]) {
-          expect(tt_update(template, {}, { x: value }, { ignore_extra: true }))
+          expect(merge_state(template, {}, { x: value }, { ignore_extra: true }))
           .toStrictEqual({});
         }
       }
@@ -307,21 +307,21 @@ describe('tt_update', () => {
           (arg as any)[type] = type;
         }
 
-        const template = tt_create(arg);
+        const template = create_template(arg);
 
         const value = {};
         for (const type of types) {
           (value as any)[type] = type_values[type][0];
         }
 
-        expect(tt_update(template, {}, value))
+        expect(merge_state(template, {}, value))
         .toStrictEqual(value);
       });
     });
 
     test('Primitive - Invalid values', () => {
       for (const type_a of primitives) {
-        const template = tt_create({ x: type_a });
+        const template = create_template({ x: type_a });
 
         const value_a = { x: type_values[type_a][0] };
 
@@ -330,17 +330,17 @@ describe('tt_update', () => {
 
           const value_b = { x: type_values[type_b][0] };
 
-          expect(() => tt_update(template, value_a, value_b as any))
+          expect(() => merge_state(template, value_a, value_b as any))
           .toThrowError();
         }
       }
     });
 
     test('Missing value & Unexpected value', () => {
-      expect(() => tt_update(tt_create({ x: 'number' }), { x: 0 }, { y: 0 } as any))
+      expect(() => merge_state(create_template({ x: 'number' }), { x: 0 }, { y: 0 } as any))
       .toThrowError();
 
-      expect(() => tt_update(tt_create({ x: 'undefined' }), { x: undefined }, { y: 0 } as any))
+      expect(() => merge_state(create_template({ x: 'undefined' }), { x: undefined }, { y: 0 } as any))
       .toThrowError();
     });
   });
@@ -350,7 +350,7 @@ describe('tt_update', () => {
       forEachUniqueCombo(primitives, 1, primitives.length, types_a_array => {
         forEachUniqueCombo(primitives, 1, primitives.length, types_a_prim => {
 
-          const template = tt_create([types_a_array, ...types_a_prim]);
+          const template = create_template([types_a_array, ...types_a_prim]);
           
           // Array values
           forEachUniqueCombo(types_a_array, 1, types_a_array.length, types_b_pool => {
@@ -362,10 +362,10 @@ describe('tt_update', () => {
               const is_valid = types_b.every(type_b => types_a_array.indexOf(type_b) !== -1);
 
               if (is_valid) {
-                expect(tt_update(template, [], value as any))
+                expect(merge_state(template, [], value as any))
                 .toStrictEqual(value);
               } else {
-                expect(() => tt_update(template, [], value as any))
+                expect(() => merge_state(template, [], value as any))
                 .toThrowError();
               }
             }
@@ -380,10 +380,10 @@ describe('tt_update', () => {
               const is_valid = (types_a_prim as string[]).indexOf(type_b) !== -1;
 
               if (is_valid) {
-                expect(tt_update(template, [], value as any))
+                expect(merge_state(template, [], value as any))
                 .toStrictEqual(value);
               } else {
-                expect(() => tt_update(template, [], value as any))
+                expect(() => merge_state(template, [], value as any))
                 .toThrowError();
               }
             }

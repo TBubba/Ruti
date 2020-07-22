@@ -7,7 +7,7 @@
  * @param array Array to iterate over.
  * @param start Lowest number of elements in "args" (inclusive).
  * @param end Highest number of elements in "args" (exclusive).
- * @param callback Called once per iteration. The "args" array is reusued.
+ * @param callback Called once per iteration. The "args" array is re-used.
  */
 export function forEachCombo<T>(
   array: T[] | readonly T[],
@@ -73,7 +73,7 @@ export function forEachCombo<T>(
  * @param array Array to iterate over.
  * @param start Lowest number of elements in "args" (inclusive).
  * @param end Highest number of elements in "args" (exclusive).
- * @param callback Called once per iteration. The "args" array is reusued.
+ * @param callback Called once per iteration. The "args" array is re-used.
  */
 export function forEachUniqueCombo<T>(
   array: T[] | readonly T[],
