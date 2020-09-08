@@ -1,6 +1,6 @@
 {
   "name": "ruti",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Runtime type checking",
   "main": "dist/index.js",
   "scripts": {
@@ -16,7 +16,11 @@
   },
   "author": "Jesper Gustafsson",
   "license": "MIT",
+  "repository": {
+    "type" : "git",
+    "url" : "https://github.com/TBubba/Ruti.git"
+  },
   "files": [
-    "dist/index.js"
+    "/dist"
   ]
 }
