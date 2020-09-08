@@ -17,6 +17,6 @@
   "author": "Jesper Gustafsson",
   "license": "UNLICENSED",
   "files": [
-    "/dist"
+    "dist/index.js"
   ]
 }
