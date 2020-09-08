@@ -15,7 +15,7 @@
     "typescript": "^3.9.7"
   },
   "author": "Jesper Gustafsson",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "files": [
     "dist/index.js"
   ]
