@@ -63,6 +63,11 @@ export type UOpts = {
    * Defaults to false.
    */
   ignore_extra?: boolean;
+  /**
+   * Ignore properties in B that are not one of the legal types in T (instead of throwing an error).
+   * Defaults to false.
+   */
+  ignore_type?: boolean;
 }
 
 export function create_template<T extends TArgNode<any>>(arg: T): TNode {
@@ -143,14 +148,19 @@ function isTTypePrim(value: unknown): value is TTypePrim {
 }
 
 // @TODO Make it optional to copy missing/invalid values from A (so it becomes a dif instead of a new & updated A)
-// @TODO Make it optional to throw errors when B (as an object) has properties that are missing in A (and just ignore them instead)
 export function merge_state<T>(t: TNode, a: T, b: DeepPartial<T>, opts?: UOpts): T {
   if (a === b) { return a as any; }
 
   const b_type = getTType(b);
 
-  if (b_type === undefined) { throw new Error(`B is not of an accepted type.`); }
-  if (t.types.indexOf(b_type) === -1) { throw new Error(`B is not of an accepted type for T (B: ${b_type}, T: ${tnodeToString(t)})`); }
+  if (b_type === undefined) {
+    if (opts?.ignore_type) { return a as any; }
+    throw new Error(`B is not of an accepted type.`);
+  }
+  if (t.types.indexOf(b_type) === -1) {
+    if (opts?.ignore_type) { return a as any; }
+    throw new Error(`B is not of an accepted type for T (B: ${b_type}, T: ${tnodeToString(t)})`);
+  }
 
   switch (b_type) {
     case 'array': {
@@ -177,8 +187,14 @@ export function merge_state<T>(t: TNode, a: T, b: DeepPartial<T>, opts?: UOpts):
           const val = b_array[i];
           const val_type = getTType(val);
 
-          if (val_type === undefined) { throw new Error(`B[${i}] is not of an accepted type.`); }
-          if (t.contents.indexOf(val_type) === -1) { throw new Error(`B[${i}] is not of an accepted type for T (B[${i}]: ${val_type}, T: ${typesToString(t.contents)})`); }
+          if (val_type === undefined) {
+            if (opts?.ignore_type) { return a as any; }
+            throw new Error(`B[${i}] is not of an accepted type.`);
+          }
+          if (t.contents.indexOf(val_type) === -1) {
+            if (opts?.ignore_type) { return a as any; }
+            throw new Error(`B[${i}] is not of an accepted type for T (B[${i}]: ${val_type}, T: ${typesToString(t.contents)})`);
+          }
         }
 
         return [ ...b_array ] as any;
