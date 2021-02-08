@@ -8,6 +8,12 @@ Enforce type safety at runtime with declarative type definitions.
 
 Writing and maintaining type safe parsers can be exhausting and error prone. With *Ruti* you only have to declare a type once to get type safety at both runtime and compile time.
 
+## Examples
+
+You can find code examples in the "examples" directory.
+
+Use ``npm run example <name>`` to run an example (replace ``<name>`` with ``help`` for more information).
+
 ## Quickstart
 
 ### Setting up a template
