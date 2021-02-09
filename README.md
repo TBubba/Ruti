@@ -32,10 +32,10 @@ const person_arg = {
 } as const;
 
 // Generate a template
-const person_template = create_template(arg);
+const person_template = create_template(person_arg);
 
 // Optional: Generate a type
-type Person = FromTTypeArg<typeof arg>
+type Person = FromTTypeArg<typeof person_arg>
 ```
 
 ### Creating and updating state
