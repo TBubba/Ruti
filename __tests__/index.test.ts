@@ -55,7 +55,7 @@ describe('create_template', () => {
       expect(() => create_template([[]]))
       .toThrowError();
     });
-  
+
     test('Array of primitive unions', () => {
       for (let count = 1; count <= primitives.length; count++) {
         const types = primitives.slice(0, count);
@@ -96,7 +96,7 @@ describe('create_template', () => {
     test('Object with primitive unions', () => {
       const names = ['x', 'y', 'z'];
 
-      for (let count = 1; count < names.length; count++) {
+      for (let count = 1; count <= names.length; count++) {
         const arg: TArgNode<any> = {};
         const template: TNode = {
           types: ['object'],
@@ -119,16 +119,96 @@ describe('create_template', () => {
       }
     });
 
-    test.todo('Object with arrays');
+    test('Object with arrays', () => {
+      const names = ['x', 'y', 'z'];
 
-    test.todo('Object with objects');
+      for (let count = 1; count <= names.length; count++) {
+        const arg: TArgNode<any> = {};
+        const template: TNode = {
+          types: ['object'],
+          children: {},
+          contents: undefined,
+        };
+
+        for (let i = 0; i < count; i++) {
+          const name = names[i];
+          const type = primitives[i % primitives.length];
+    
+          arg[name] = [[type]];
+          template.children![name] = {
+            types: ['array'],
+            contents: [type],
+          };
+        }
+
+        expect(create_template(arg))
+        .toEqual(template);
+      }
+    });
+
+    test('Object with objects', () => {
+      const names = ['x', 'y', 'z'];
+
+      for (let count = 1; count <= names.length; count++) {
+        const arg: TArgNode<any> = {};
+        const template: TNode = {
+          types: ['object'],
+          children: {},
+          contents: undefined,
+        };
+
+        for (let i = 0; i < count; i++) {
+          const name = names[i];
+          const type = primitives[i % primitives.length];
+    
+          arg[name] = { [name]: type };
+          template.children![name] = {
+            types: ['object'],
+            children: { [name]: { types: [type] } },
+          };
+        }
+
+        expect(create_template(arg))
+        .toEqual(template);
+      }
+    });
   });
 
   describe('Mixed unions', () => {
-    test.todo('Array & Primitive union');
-  
-    test.todo('Object & Primitive union');
-  
+    test('Array & Primitive union', () => {
+      for (let i = 0; i < primitives.length; i++) {
+        const array_type = primitives[i];
+
+        for (let count = 1; count < primitives.length; count++) {
+          const primitive_types = primitives.slice(0, count);
+
+          expect(create_template([[array_type], ...primitive_types]))
+          .toEqual({
+            types: ['array', ...primitive_types],
+            children: undefined,
+            contents: [array_type],
+          });
+        }
+      }
+    });
+
+    test('Object & Primitive union', () => {
+      for (let i = 0; i < primitives.length; i++) {
+        const object_type = primitives[i];
+
+        for (let count = 1; count < primitives.length; count++) {
+          const primitive_types = primitives.slice(0, count);
+
+          expect(create_template([{ x: object_type }, ...primitive_types]))
+          .toEqual({
+            types: ['object', ...primitive_types],
+            children: { x: { types: [object_type] } },
+            contents: undefined,
+          });
+        }
+      }
+    });
+
     test.todo('Array & Object union');
   });
 });
@@ -353,21 +433,17 @@ describe('merge_state', () => {
           const template = create_template([types_a_array, ...types_a_prim]);
           
           // Array values
-          forEachUniqueCombo(types_a_array, 1, types_a_array.length, types_b_pool => {
-            for (let i = 1; i < types_b_pool.length; i++) {
+          forEachUniqueCombo(all_types, 1, all_types.length, types_b => {
+            const value = types_b.map(type_b => type_values[type_b][0]);
 
-              const types_b = types_b_pool.slice(0, i);
-              const value = types_b.map(type_b => type_values[type_b][0]);
+            const is_valid = types_b.every(type_b => (types_a_array as string[]).indexOf(type_b) !== -1);
 
-              const is_valid = types_b.every(type_b => types_a_array.indexOf(type_b) !== -1);
-
-              if (is_valid) {
-                expect(merge_state(template, [], value as any))
-                .toStrictEqual(value);
-              } else {
-                expect(() => merge_state(template, [], value as any))
-                .toThrowError();
-              }
+            if (is_valid) {
+              expect(merge_state(template, [], value as any))
+              .toStrictEqual(value);
+            } else {
+              expect(() => merge_state(template, [], value as any))
+              .toThrowError();
             }
           });
 
@@ -392,7 +468,102 @@ describe('merge_state', () => {
       });
     });
 
-    test.todo('Object & Primitive union');
+    test('Object & Primitive union', () => {
+      // @TODO Test the options as well (ignore_extra and ignore_type)
+
+      const all_names = ['x', 'y', 'z', 'w'];
+      
+      expect(all_names.length).toStrictEqual(primitives.length); // Make sure there are enough names!
+
+      forEachUniqueCombo(primitives, 1, primitives.length, types_a_object => {
+        forEachUniqueCombo(primitives, 1, primitives.length, types_a_prim => {
+
+          const arg_object_names = all_names.slice(0, types_a_object.length);
+
+          const arg_object: TArgNode<any> = {};
+          for (let i = 0; i < types_a_object.length; i++) {
+            arg_object[arg_object_names[i]] = types_a_object[i];
+          }
+
+          const template = create_template([ arg_object, ...types_a_prim ]);
+          
+          // Object values
+          forEachUniqueCombo(primitives, 0, primitives.length, types_b => {
+            const arg_b: any = {};
+            const value: any = {};
+            for (let i = 0; i < types_b.length; i++) {
+              const name = all_names[i];
+              const type = types_b[i];
+
+              arg_b[name] = type;
+              value[name] = type_values[type][0];
+            }
+
+            let is_valid = true;
+            for (let i = 0; i < arg_object_names.length; i++) {
+              const name = arg_object_names[i];
+              const type_a = arg_object[name];
+              const type_b = arg_b[name];
+
+              if (type_b === undefined) { continue; }
+              if (type_b === 'undefined') { continue; }
+              if (type_a === type_b) { continue; }
+              
+              is_valid = false;
+              break;
+            }
+            for (let i = 0; i < types_b.length; i++) {
+              if (arg_object_names.indexOf(all_names[i]) === -1) {
+                is_valid = false;
+                break;
+              }
+            }
+
+            if (is_valid) {
+              expect(merge_state(template, {}, value as any))
+              .toStrictEqual(value);
+            } else {
+              expect(() => merge_state(template, {}, value as any))
+              .toThrowError();
+            }
+          });
+
+          // Non-object values
+          for (const type_b of all_types) {
+            if (type_b === 'object') { continue; }
+
+            for (const value of type_values[type_b]) {
+              
+              const is_valid = (types_a_prim as string[]).indexOf(type_b) !== -1;
+
+              if (is_valid) {
+                expect(merge_state(template, {}, value as any))
+                .toStrictEqual(value);
+              } else {
+                expect(() => merge_state(template, {}, value as any))
+                .toThrowError();
+              }
+            }
+          }
+        });
+      });
+    });
+
+    test('Object & Primitive union - Primitive to Object', () => {
+
+      for (const type_prim of primitives) {
+        for (const value_prim of type_values[type_prim]) {
+
+          const template = create_template([ { x: 'boolean' }, type_prim ]);
+
+          expect(merge_state(template, value_prim, { x: true } as any))
+          .toStrictEqual({ x: true });
+
+          expect(() => merge_state(template, value_prim, {} as any))
+          .toThrowError();
+        }
+      }
+    });
 
     test.todo('Array & Object union');
   });

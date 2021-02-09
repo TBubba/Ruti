@@ -113,6 +113,7 @@ Merge ``b`` into ``a`` and return the result. No argument is modified by this fu
 * ``b`` is an array, and contains a value of a type not that is not listed in ``template.contents``.
 * ``b`` is an object, and contains a property that is not listed in ``template.children`` (unless ``opts.ignore_extra`` is ``true``).
 * ``b`` is an object, and contains a property that is listed in ``template.children``, but the types of the properties does not match.
+* ``b`` is an object, ``a`` is not an object, and ``b`` does not contain every property listed in ``template.children``.
 
 ## Arg structure
 

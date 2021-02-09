@@ -32,6 +32,7 @@ export type TArgNode<T> =
   | Arr<TTypePrim>
   | Arr<Arr<TTypePrim>>
   | [Arr<TTypePrim>, ...TTypePrim[]]
+  | readonly [{ [K in keyof T]: TArgNode<T[K]> }, ...TTypePrim[]]
   | { [K in keyof T]: TArgNode<T[K]> }
 
 export type TNode<
@@ -85,6 +86,7 @@ export function create_template<T extends TArgNode<any>>(arg: T): TNode {
   // Union
   else if (Array.isArray(arg)) {
     let array_index = -1;
+    let object_index = -1;
 
     if (arg.length === 0) { throw new Error('Empty union array.'); }
 
@@ -93,9 +95,10 @@ export function create_template<T extends TArgNode<any>>(arg: T): TNode {
 
       // Array
       if (Array.isArray(item)) {
-        if (array_index >= 0) { throw new Error(`No more than one array can be used in a union (first array index: ${array_index}, second array index: ${i}).`); }
+        if (array_index  >= 0) { throw new Error(`No more than one array can be used in a union (first array index: ${array_index}, second array index: ${i}).`); }
+        if (object_index >= 0) { throw new Error(`A union can only contain one object or array (object index: ${object_index}, array index: ${i}).`); }
         array_index = i;
-
+        
         if (item.length === 0) { throw new Error('Empty array.'); }
 
         // Validate array types
@@ -107,6 +110,23 @@ export function create_template<T extends TArgNode<any>>(arg: T): TNode {
         node.types.push('array');
         node.contents = [ ...item ];
       }
+      // Object
+      else if (typeof item === 'object' && item !== null) {
+        if (object_index >= 0) { throw new Error(`No more than one object can be used in a union (first object index: ${object_index}, second object index: ${i}).`); }
+        if (array_index  >= 0) { throw new Error(`A union can only contain one object or array (array index: ${array_index}, object index: ${i}).`); }
+        object_index = i;
+        
+        node.types.push('object');
+        node.children = {};
+
+        const keys = Object.keys(item);
+        for (let j = 0; j < keys.length; j++) {
+          const key = keys[j];
+
+          node.children[key] = create_template(item[key as keyof T] as any);
+        }
+      }
+      // Primitive
       else {
         if (!isTTypePrim(item)) { throw new Error(`Invalid type: ${item}`); }
         if (arg.indexOf(item, i + 1) >= 0) { throw new Error(`Duplicate type: ${item}`); }
@@ -215,6 +235,16 @@ export function merge_state<T>(t: TNode, a: T, b: DeepPartial<T>, opts?: UOpts):
       let d_object: { [key: string]: unknown; } | undefined;
 
       const keys = Object.keys(b_object);
+
+      if (a_is_not_object) {
+        for (const key in t.children) {
+          if (t.children[key].types.indexOf('undefined') !== -1) { continue; }
+
+          if (!(key in b_object)) {
+            throw new Error(`B is missing a key that is required in T (key: "${key}")`);
+          }
+        }
+      }
   
       for (const key of keys) {
         if (!(key in t.children)) {
@@ -222,7 +252,9 @@ export function merge_state<T>(t: TNode, a: T, b: DeepPartial<T>, opts?: UOpts):
           throw new Error(`B has a key that is not present in T (key: "${key}")`);
         }
 
-        const result = merge_state(t.children[key], a_object[key] as any, b_object[key] as any, opts);
+        const a_value = a_is_not_object ? undefined : a_object[key];
+
+        const result = merge_state(t.children[key], a_value as any, b_object[key] as any, opts);
 
         if (a_is_not_object || !(key in a_object) || result !== a_object[key]) {
           if (!d_object) {
