@@ -2,11 +2,13 @@
 
 **WORK IN PROGRESS! NOT READY FOR PRODUCTION!**
 
-Enforce type safety at runtime with declarative type definitions.
-
 ## Purpose
 
-Writing and maintaining type safe parsers can be exhausting and error prone. With *Ruti* you only have to declare a type once to get type safety at both runtime and compile time.
+Your code is not robust unless it operates on the data it was designed for. TypeScript solves this issue for data that originates from your own project. But any data that is unknowable at compile time can not be type checked by TypeScript (such as responses from REST APIs or JSON files).
+
+The robust way to ensure type safety is to type check all "unsafe" data before operating on it (obviously). This could, for example, be done by setting the type of "unsafe" data to ``unknown`` and then doing various type checks (``typeof``, ``Array.isArray`` etc.) until the TypeScript compiler doesn't find any errors. But writing and maintaining code like this can be very time-consuming (as well as incredibly boring).
+
+Ruti attempts to solve this by having one generic algorithm for type checking a wide variety of data types. So all you have to do is declare the types (in a somewhat weird way) and call a couple functions.
 
 ## Examples
 
