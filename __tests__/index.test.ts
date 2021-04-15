@@ -16,6 +16,67 @@ const type_values = {
   undefined: [undefined],
 };
 
+describe('internal', () => {
+  describe('forEachUniqueCombo', () => {
+    test('Length 0', () => {
+      const array: any[] = [];
+      const values = [ [] ];
+  
+      let index = 0;
+      forEachUniqueCombo(array, 0, array.length, (indices) => {
+        expect(indices)
+        .toStrictEqual(values[index++]);
+      });
+
+      expect(index).toStrictEqual(values.length);
+    });
+
+    test('Length 1', () => {
+      const array = [0];
+      const values = [ [], [0] ];
+  
+      let index = 0;
+      forEachUniqueCombo(array, 0, array.length, (indices) => {
+        expect(indices)
+        .toStrictEqual(values[index++]);
+      });
+
+      expect(index).toStrictEqual(values.length);
+    });
+
+    test('Length 2', () => {
+      const array = [0, 1];
+      const values = [ [], [0], [1], [0, 1] ];
+  
+      let index = 0;
+      forEachUniqueCombo(array, 0, array.length, (indices) => {
+        expect(indices)
+        .toStrictEqual(values[index++]);
+      });
+
+      expect(index).toStrictEqual(values.length);
+    });
+
+    test('Length 3', () => {
+      const array = [0, 1, 2];
+      const values = [
+        [],
+        [0], [1], [2],
+        [0, 1], [0, 2], [1, 2],
+        [0, 1, 2],
+      ];
+  
+      let index = 0;
+      forEachUniqueCombo(array, 0, array.length, (indices) => {
+        expect(indices)
+        .toStrictEqual(values[index++]);
+      });
+
+      expect(index).toStrictEqual(values.length);
+    });
+  });
+});
+
 describe('create_template', () => {
   describe('Primitive', () => {
     test('Single primitive', () => {

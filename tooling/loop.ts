@@ -128,4 +128,13 @@ export function forEachUniqueCombo<T>(
       }
     }
   }
+
+  // hotfix: Don't skip the last combination (with all values). Not sure if calling back with an empty array if start = end - 1 though.
+
+  for (let i = 0; i < end; i++) {
+    indices[i] = i;
+    args[i] = array[i];
+  }
+
+  callback(args);
 }
