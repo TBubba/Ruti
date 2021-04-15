@@ -4,7 +4,8 @@
     "module": "CommonJS",
     "declaration": true,
     "strict": true,
-    "outDir": "dist",
+    "noImplicitAny": true,
+    "outDir": "dist"
   },
   "files": [
     "src/index.ts"
