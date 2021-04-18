@@ -27,7 +27,6 @@ const person_arg = {
   age: 'number',
   address: {
     street: 'string',
-    city: 'string',
     zip_code: 'number',
   },
   nicknames: [['string']],
@@ -49,7 +48,6 @@ const person: Person = {
   age: 30,
   address: {
     street: 'Somewhere 2',
-    city: 'Someplace',
     zip_code: 12345,
   },
   nicknames: ['Pete', 'Big P'],
@@ -61,6 +59,25 @@ const updated_person = merge_state(person_template, person, { age: 31 });
 
 // person.age === 30
 // updated_person.age === 31
+```
+
+### Checking types
+
+```ts
+const person = {
+  name: 'Johan',
+  age: 55,
+  address: {
+    street: 'Somewhere 4',
+    zip_code: 12345,
+  },
+  nicknames: ['Mr J'],
+};
+
+if (is_type(person_template, person)) {
+  // person is a real person!
+  // (is_type uses a type guard, so TypeScript knows that person is of type Person)
+}
 ```
 
 ## Terms
@@ -116,6 +133,24 @@ Merge ``b`` into ``a`` and return the result. No argument is modified by this fu
 * ``b`` is an object, and contains a property that is not listed in ``template.children`` (unless ``opts.ignore_extra`` is ``true``).
 * ``b`` is an object, and contains a property that is listed in ``template.children``, but the types of the properties does not match.
 * ``b`` is an object, ``a`` is not an object, and ``b`` does not contain every property listed in ``template.children``.
+* ``template`` is not a valid template (this may not catch all template issues).
+
+### ``is_type(template, value, opts?, on_fail?)``
+
+Check if ``value`` conforms to ``template``.
+
+**Arguments**
+
+* ``template``: Template to check conformity against.
+* ``value``: Value to check conformity with.
+* ``opts``: Options for how to perform the conformity check. These options are applied to child objects recursively. (Optional)
+* ``on_fail``: Called if ``value`` does not conform to ``template``. Arguments contains information about how it failed. (Optional)
+
+**Returns** ``true`` if  ``value`` comforms to ``template``, otherwise ``false``.
+
+**Throws** if ...
+
+* ``template`` is not a valid template (this may not catch all template issues).
 
 ## Arg structure
 

@@ -58,7 +58,7 @@ export type TTypePrim =
   | 'string'
   | 'undefined'
 
-export type UOpts = {
+export type MergeStateOpts = {
   /**
    * Ignore properties that exist in B but not in T (instead of throwing an error).
    * Defaults to false.
@@ -67,8 +67,18 @@ export type UOpts = {
   /**
    * Ignore properties in B that are not one of the legal types in T (instead of throwing an error).
    * Defaults to false.
+   * 
+   * @TODO Is this not just a silly option? Why not just make a template where all values are of all types?
    */
   ignore_type?: boolean;
+}
+
+export type isTypeOpts = {
+  /**
+   * Ignore properties that exist in V but not in T (instead of throwing an error).
+   * Defaults to false.
+   */
+  ignore_extra?: boolean;
 }
 
 export function create_template<T extends TArgNode<any>>(arg: T): TNode {
@@ -168,7 +178,7 @@ function isTTypePrim(value: unknown): value is TTypePrim {
 }
 
 // @TODO Make it optional to copy missing/invalid values from A (so it becomes a dif instead of a new & updated A)
-export function merge_state<T>(t: TNode, a: T, b: DeepPartial<T>, opts?: UOpts): T {
+export function merge_state<T>(t: TNode, a: T, b: DeepPartial<T>, opts?: MergeStateOpts): T {
   if (a === b) { return a as any; }
 
   const b_type = getTType(b);
@@ -184,7 +194,7 @@ export function merge_state<T>(t: TNode, a: T, b: DeepPartial<T>, opts?: UOpts):
 
   switch (b_type) {
     case 'array': {
-      if (!t.contents) { throw new Error('Array is missing "contents"'); }
+      if (!t.contents) { throw new Error('T is missing "contents". This means the template is invalid!'); }
 
       const a_array = a as any as unknown[];
       const b_array = b as any as unknown[];
@@ -225,7 +235,7 @@ export function merge_state<T>(t: TNode, a: T, b: DeepPartial<T>, opts?: UOpts):
     } break;
 
     case 'object': {
-      if (!t.children) { throw new Error('Object is missing "children"'); }
+      if (!t.children) { throw new Error('T is missing "children". This means the template is invalid!'); }
 
       const a_object = a as any as { [key: string]: unknown; };
       const b_object = b as any as { [key: string]: unknown; };
@@ -234,19 +244,21 @@ export function merge_state<T>(t: TNode, a: T, b: DeepPartial<T>, opts?: UOpts):
 
       let d_object: { [key: string]: unknown; } | undefined;
 
-      const keys = Object.keys(b_object);
+      const keys_b = Object.keys(b_object);
 
       if (a_is_not_object) {
-        for (const key in t.children) {
-          if (t.children[key].types.indexOf('undefined') !== -1) { continue; }
+        for (const key_t in t.children) {
+          if (!(key_t in b_object)) {
+            if (t.children[key_t].types.indexOf('undefined') !== -1) { continue; } // values that can be undefined can also be missing (@TODO Make this an option?)
 
-          if (!(key in b_object)) {
-            throw new Error(`B is missing a key that is required in T (key: "${key}")`);
+            // Note: If A is a non-object and B is an object all keys have to be present.
+            // This is because when A is an object it is assumed that it already has all keys (so B may be partial)
+            throw new Error(`B is missing a key that is required in T (key: "${key_t}")`);
           }
         }
       }
-  
-      for (const key of keys) {
+
+      for (const key of keys_b) {
         if (!(key in t.children)) {
           if (opts?.ignore_extra) { continue; }
           throw new Error(`B has a key that is not present in T (key: "${key}")`);
@@ -276,9 +288,85 @@ export function merge_state<T>(t: TNode, a: T, b: DeepPartial<T>, opts?: UOpts):
     case 'string':
     case 'undefined':
       return b as any; // no need to compare primitives
-    
+
+    case undefined:
+      throw new Error('Type of T is undefined. This means the template is invalid!');
     default:
       throw new Error(`Type "${b_type}" is not implemented!`);
+  }
+}
+
+export function is_type<T>(t: TNode, v: unknown, opts?: isTypeOpts, on_fail: (reason: string) => void = noop): v is T {
+  const v_type = getTType(v);
+
+  if (v_type === undefined) {
+    on_fail('Type of V is not implemented');
+    return false;
+  }
+  if (t.types.indexOf(v_type) === -1) {
+    on_fail(`V is not of an accepted type for T (type of V: ${v_type}, type of T: ${tnodeToString(t)})`);
+    return false;
+  }
+
+  switch (v_type) {
+    case 'array': {
+      if (!t.contents) { throw new Error('T is missing "contents". This means the template is invalid!'); }
+
+      const v_array = v as any as unknown[];
+
+      for (let i = 0; i < v_array.length; i++) {
+        const item = v_array[i];
+        const item_type = getTType(item);
+
+        if (t.contents.indexOf(item_type as any) === -1) {
+          on_fail(`V[${i}] is not of an accepted type for T (V[${i}]: ${item_type}, T: ${typesToString(t.contents)})`); // or B[i] is just undefined
+          return false;
+        }
+      }
+
+      return true;
+    } break;
+
+    case 'object': {
+      if (!t.children) { throw new Error('T is missing "children". This means the template is invalid!'); }
+
+      const v_object = v as any as { [key: string]: unknown; };
+
+      for (const key in t.children) {
+        if (t.children[key].types.indexOf('undefined') !== -1) { continue; }
+
+        if (!(key in v_object)) {
+          on_fail(`V is missing a key that is required in T (key: "${key}")`);
+          return false;
+        }
+      }
+
+      const keys_v = Object.keys(v_object);
+
+      for (const key of keys_v) {
+        if (!(key in t.children)) {
+          if (opts?.ignore_extra) { continue; }
+          on_fail(`V has a key that is not present in T (key: "${key}")`);
+          return false;
+        }
+
+        if (!is_type(t.children[key], v_object[key], opts, on_fail)) { return false; }
+      }
+
+      return true;
+    } break;
+
+    // Primitives
+    case 'boolean':
+    case 'number':
+    case 'string':
+    case 'undefined':
+      return true; // no need to compare primitives
+
+    case undefined:
+      throw new Error('Type of T is undefined. This means the template is invalid!');
+    default:
+      throw new Error(`Type "${v_type}" is not implemented!`);
   }
 }
 
@@ -305,3 +393,5 @@ function tnodeToString(node: TNode): string {
 function typesToString(types: unknown[]): string {
   return `[${types.join(', ')}]`;
 }
+
+function noop() {}
