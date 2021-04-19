@@ -1,9 +1,9 @@
 import { create_template, FromTTypeArg, FromTTypeString, is_type, merge_state, TArgNode, TNode, TType, TTypePrim } from '../src';
-import { forEachCombo, forEachUniqueCombo } from '../tooling/loop';
+import { forEachUniqueCombo } from '../tooling/loop';
 
 const advanced = ['object', 'array'] as const;
 
-const primitives = ['boolean', 'number', 'string', 'undefined'] as const;
+const primitives = ['boolean', 'number', 'string', 'null', 'undefined'] as const;
 
 const all_types = [...advanced, ...primitives] as const;
 
@@ -13,6 +13,7 @@ const type_values = {
   boolean: [false, true],
   number: [0, 1],
   string: ['', 'abc'],
+  null: [null],
   undefined: [undefined],
 };
 
@@ -64,6 +65,44 @@ describe('internal', () => {
         [0], [1], [2],
         [0, 1], [0, 2], [1, 2],
         [0, 1, 2],
+      ];
+  
+      let index = 0;
+      forEachUniqueCombo(array, 0, array.length, (indices) => {
+        expect(indices)
+        .toStrictEqual(values[index++]);
+      });
+
+      expect(index).toStrictEqual(values.length);
+    });
+
+    test('Length 4', () => {
+      const array = [0, 1, 2, 3];
+      const values = [
+        [],
+        [0], [1], [2], [3],
+        [0, 1], [0, 2], [0, 3], [1, 2], [1, 3], [2, 3],
+        [0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3],
+        [0, 1, 2, 3],
+      ];
+  
+      let index = 0;
+      forEachUniqueCombo(array, 0, array.length, (indices) => {
+        expect(indices)
+        .toStrictEqual(values[index++]);
+      });
+
+      expect(index).toStrictEqual(values.length);
+    });
+
+    test('Length 4 - Different values', () => {
+      const array = ['a', null, undefined, 3];
+      const values = [
+        [],
+        ['a'], [null], [undefined], [3],
+        ['a', null], ['a', undefined], ['a', 3], [null, undefined], [null, 3], [undefined, 3],
+        ['a', null, undefined], ['a', null, 3], ['a', undefined, 3], [null, undefined, 3],
+        ['a', null, undefined, 3],
       ];
   
       let index = 0;
@@ -375,8 +414,8 @@ describe('merge_state', () => {
         const value_pool: (FromTTypeArg<TTypePrim>)[] = [];
         types_a.forEach(type => { value_pool.push(...type_values[type]) });
 
-        forEachCombo(value_pool, 0, types_a.length, values_a => {
-          forEachCombo(value_pool, 0, types_a.length, values_b => {
+        forEachUniqueCombo(value_pool, 0, types_a.length, values_a => {
+          forEachUniqueCombo(value_pool, 0, types_a.length, values_b => {
             expect(merge_state(template, values_a, values_b))
             .toStrictEqual(values_b);
           });
@@ -472,6 +511,7 @@ describe('merge_state', () => {
   });
 
   describe('Mixed unions', () => {
+    // @TODO This is VERY slow! It takes over a minute to run on my machine!
     test('Array & Primitive union', () => {
       forEachUniqueCombo(primitives, 1, primitives.length, types_a_array => {
         forEachUniqueCombo(primitives, 1, primitives.length, types_a_prim => {
@@ -517,7 +557,7 @@ describe('merge_state', () => {
     test('Object & Primitive union', () => {
       // @TODO Test the options as well (ignore_extra and ignore_type)
 
-      const all_names = ['x', 'y', 'z', 'w'];
+      const all_names = ['x', 'y', 'z', 'v', 'w'];
       
       expect(all_names.length).toStrictEqual(primitives.length); // Make sure there are enough names!
 
@@ -679,7 +719,7 @@ describe('is_type', () => {
         const all_valid_values: (FromTTypeArg<TTypePrim>)[] = [];
         types.forEach(type => { all_valid_values.push(...type_values[type]) });
 
-        forEachCombo(all_valid_values, 0, types.length, values => {
+        forEachUniqueCombo(all_valid_values, 0, types.length, values => {
           expect(is_type(template, values)).toStrictEqual(true);
         });
       });
@@ -794,7 +834,7 @@ describe('is_type', () => {
       // @TODO Test the options as well (ignore_extra)
       // @TODO Test objects with children of non-primitive types as well
 
-      const all_names = ['x', 'y', 'z', 'w'];
+      const all_names = ['x', 'y', 'z', 'v', 'w'];
 
       expect(all_names.length).toStrictEqual(primitives.length); // Make sure there are enough names!
 

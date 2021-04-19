@@ -19,6 +19,7 @@ type FromTTypePrim<T> =
   T extends 'boolean' ? boolean :
   T extends 'number' ? number :
   T extends 'string' ? string :
+  T extends 'null' ? null :
   T extends 'undefined' ? undefined :
   never
 
@@ -56,6 +57,7 @@ export type TTypePrim =
   | 'boolean'
   | 'number'
   | 'string'
+  | 'null'
   | 'undefined'
 
 export type MergeStateOpts = {
@@ -170,6 +172,7 @@ function isTTypePrim(value: unknown): value is TTypePrim {
     case 'boolean':
     case 'number':
     case 'string':
+    case 'null':
     case 'undefined':
       return true;
     default:
@@ -286,6 +289,7 @@ export function merge_state<T>(t: TNode, a: T, b: DeepPartial<T>, opts?: MergeSt
     case 'boolean':
     case 'number':
     case 'string':
+    case 'null':
     case 'undefined':
       return b as any; // no need to compare primitives
 
@@ -360,6 +364,7 @@ export function is_type<T>(t: TNode, v: unknown, opts?: isTypeOpts, on_fail: (re
     case 'boolean':
     case 'number':
     case 'string':
+    case 'null':
     case 'undefined':
       return true; // no need to compare primitives
 
@@ -374,9 +379,7 @@ function getTType(value: unknown): TType | undefined {
   if (Array.isArray(value)) { return 'array'; }
 
   switch (typeof value) {
-    case 'object':
-      if (value !== null) { return 'object'; }
-      break;
+    case 'object': return (value === null) ? 'null' : 'object';
     case 'boolean': return 'boolean';
     case 'number': return 'number';
     case 'string': return 'string';

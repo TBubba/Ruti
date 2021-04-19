@@ -122,7 +122,7 @@ Merge ``b`` into ``a`` and return the result. No argument is modified by this fu
 **Returns** ...
 
 * ``a``, if ``a`` and ``b`` are strictly equal.
-* ``b``, if ``b`` is a primitive value (``boolean``, ``number``, ``string`` or ``undefined``).
+* ``b``, if ``b`` is a primitive value (``boolean``, ``number``, ``string``, ``null`` or ``undefined``).
 * A new array, if ``b`` is an array. The new array is a copy of ``b``.
 * A new object, if ``b`` is an object. The new object is a copy of ``a`` (or an empty object if ``a`` is not an object) with all properties (listed in ``template.children``) of ``b`` applied to it (if a property is an object, then this function is applied to that as well).
 
@@ -156,9 +156,9 @@ Check if ``value`` conforms to ``template``.
 
 ### Data types
 
-There are 6 different data types, and they are divided into two categories:
+There are 7 different data types, and they are divided into two categories:
 
-Primitive: ``boolean``, ``number``, ``string`` and ``undefined``.
+Primitive: ``boolean``, ``number``, ``string``, ``null`` and ``undefined``.
 
 Advanced: ``object`` and ``array``.
 
@@ -184,3 +184,4 @@ Each value can be one of the following:
 Notes:
 * Unions can only contain at most one object or array.
 * Arrays only support primitive types (no nested arrays and no objects).
+* Ruti treats ``null`` as its own primitive (even though it's treated as an ``object`` by Javascript)
