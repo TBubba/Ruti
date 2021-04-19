@@ -6,14 +6,18 @@ type Arr<T> = T[] | readonly T[]
 
 export type FromTTypeArg<T> =
   T extends Arr<infer A> ? (
-    A extends Arr<infer B> ?
-      FromTTypePrim<B>[] :
-      FromTTypePrim<T[number]>
+    A extends Arr<infer B> ? ( // [[ B ]]
+      FromTTypePrim<B>[]
+    ) :
+    A extends object ? ({ // [{ A }]
+      -readonly [K in keyof A]: FromTTypeArg<A[K]>;
+    }) :
+    FromTTypePrim<T[number]> // [ A ]
   ) :
-  T extends object ? ({
+  T extends object ? ({ // { T }
     -readonly [K in keyof T]: FromTTypeArg<T[K]>;
   }) :
-  FromTTypePrim<T>
+  FromTTypePrim<T> // 'T'
 
 type FromTTypePrim<T> =
   T extends 'boolean' ? boolean :
