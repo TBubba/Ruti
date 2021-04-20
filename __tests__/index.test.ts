@@ -182,6 +182,24 @@ describe('create_template', () => {
       expect(() => create_template([['number'], ['string']]))
       .toThrowError();
     });
+
+    test('Array of objects', () => {
+      expect(create_template([[{ x: 'string' }]]))
+      .toEqual({
+        types: ['array'],
+        children: {
+          x: {
+            types: ['string'],
+            children: undefined,
+            contents: undefined,
+          },
+        },
+        contents: ['object'],
+      });
+      
+      expect(() => create_template([[{ x: 'string' }, { y: 'number' }]]))
+      .toThrowError();
+    });
   });
 
   describe('Object', () => {
@@ -309,6 +327,29 @@ describe('create_template', () => {
       }
     });
 
+    test('Array of objects & Primitive union', () => {
+      for (let i = 0; i < primitives.length; i++) {
+        const array_type = primitives[i];
+
+        for (let count = 1; count < primitives.length; count++) {
+          const primitive_types = primitives.slice(0, count);
+
+          expect(create_template([[{ [array_type]: array_type }], ...primitive_types]))
+          .toEqual({
+            types: ['array', ...primitive_types],
+            children: {
+              [array_type]: {
+                types: [array_type],
+                children: undefined,
+                contents: undefined,
+              },
+            },
+            contents: ['object'],
+          });
+        }
+      }
+    });
+
     test.todo('Array & Object union');
   });
 });
@@ -371,7 +412,7 @@ describe('merge_state', () => {
   });
 
   describe('Array', () => {
-    test('Single type array - Valid values', () => {
+    test('Primitive array - Valid values', () => {
       for (const type of primitives) {
         const template = create_template([[type]]);
 
@@ -385,7 +426,7 @@ describe('merge_state', () => {
       }
     });
 
-    test('Single type array - Invalid values', () => {
+    test('Primitive array - Invalid values', () => {
       for (const type_a of primitives) {
         const template = create_template(type_a);
 
@@ -407,7 +448,7 @@ describe('merge_state', () => {
       }
     });
 
-    test('Union type array - Only valid values', () => {
+    test('Primitive union array - Only valid values', () => {
       forEachUniqueCombo(primitives, 1, primitives.length, types_a => {
         const template = create_template([types_a]);
 
@@ -423,7 +464,7 @@ describe('merge_state', () => {
       });
     });
 
-    test('Union type array - Only invalid values', () => {
+    test('Primitive union array - Only invalid values', () => {
       forEachUniqueCombo(primitives, 1, primitives.length, types_a => {
         const template = create_template([types_a]);
 
@@ -439,7 +480,48 @@ describe('merge_state', () => {
       });
     });
 
-    test.todo('Union type array - Mixed valid and invalid values');
+    test.todo('Primitive union array - Mixed valid and invalid values');
+
+    test('Object array - not supported', () => {
+      const template = create_template([[{ x: 'string' }]]);
+
+      expect(() => merge_state(template, [], []))
+      .toThrowError();
+
+      expect(() => merge_state(template, [{ x: 'a' }], []))
+      .toThrowError();
+
+      expect(() => merge_state(template, [{ x: 'a' }], [{ x: 'b' }]))
+      .toThrowError();
+
+      expect(() => merge_state(template, [], [{ x: 'b' }] as any))
+      .toThrowError();
+    });
+
+    test('Object and primitive union array - not supported', () => {
+      const template = create_template([[{ x: 'string' }, 'number']] as const);
+
+      expect(() => merge_state(template, [], []))
+      .toThrowError();
+
+      expect(() => merge_state(template, [{ x: 'a' }], []))
+      .toThrowError();
+
+      expect(() => merge_state(template, [{ x: 'a' }], [{ x: 'b' }]))
+      .toThrowError();
+
+      expect(() => merge_state(template, [], [{ x: 'b' }] as any))
+      .toThrowError();
+
+      expect(() => merge_state(template, [1], []))
+      .toThrowError();
+
+      expect(() => merge_state(template, [1], [2]))
+      .toThrowError();
+
+      expect(() => merge_state(template, [], [2] as any))
+      .toThrowError();
+    });
   });
 
   describe('Object', () => {
@@ -688,7 +770,7 @@ describe('is_type', () => {
   });
 
   describe('Array', () => {
-    test('Single type array - Valid values', () => {
+    test('Primitive array - Valid values', () => {
       for (const type of primitives) {
         const template = create_template([[type]]);
 
@@ -698,7 +780,7 @@ describe('is_type', () => {
       }
     });
 
-    test('Single type array - Invalid values', () => {
+    test('Primitive array - Invalid values', () => {
       for (const type_t of primitives) {
         const template = create_template([[type_t]]);
 
@@ -712,7 +794,7 @@ describe('is_type', () => {
       }
     });
 
-    test('Union type array - Valid values', () => {
+    test('Primitive union array - Valid values', () => {
       forEachUniqueCombo(primitives, 1, primitives.length, types => {
         const template = create_template([types]);
 
@@ -725,7 +807,7 @@ describe('is_type', () => {
       });
     });
 
-    test('Union type array - Only invalid values', () => {
+    test('Primitive union array - Only invalid values', () => {
       forEachUniqueCombo(primitives, 1, primitives.length, types_t => {
         const template = create_template([types_t]);
 
@@ -740,7 +822,31 @@ describe('is_type', () => {
       });
     });
     
-    test.todo('Union type array - Some invalid values');
+    test.todo('Primitive union array - Some invalid values');
+
+    test('Object array', () => {
+      let template: TNode;
+
+      template = create_template([[ { x: 'string' } ]]);
+      expect(is_type(template, [])).toStrictEqual(true);
+      expect(is_type(template, [{ x: 'a' }])).toStrictEqual(true);
+      expect(is_type(template, [{ x: 1 }])).toStrictEqual(false);
+      expect(is_type(template, [{}])).toStrictEqual(false);
+    });
+
+    test('Object and primitive array', () => {
+      let template: TNode;
+
+      template = create_template([[ { x: 'string' }, 'number' ]]);
+      expect(is_type(template, [])).toStrictEqual(true);
+      expect(is_type(template, [{ x: 'a' }])).toStrictEqual(true);
+      expect(is_type(template, [{ x: 1 }])).toStrictEqual(false);
+      expect(is_type(template, [{}])).toStrictEqual(false);
+      expect(is_type(template, [0])).toStrictEqual(true);
+      expect(is_type(template, [{ x: 'a' }, 0])).toStrictEqual(true);
+      expect(is_type(template, [{ x: 1 }, 0])).toStrictEqual(false);
+      expect(is_type(template, ['a'])).toStrictEqual(false);
+    });
   });
 
   describe('Object', () => {

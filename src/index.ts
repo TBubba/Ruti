@@ -6,8 +6,11 @@ type Arr<T> = T[] | readonly T[]
 
 export type FromTTypeArg<T> =
   T extends Arr<infer A> ? (
-    A extends Arr<infer B> ? ( // [[ B ]]
-      FromTTypePrim<B>[]
+    A extends Arr<infer B> ? (
+      B extends object ? ({ // [[ { B } ]]
+        -readonly [K in keyof B]: FromTTypeArg<B[K]>;
+      }[]) :
+      FromTTypePrim<B>[] // [[ B ]]
     ) :
     A extends object ? ({ // [{ A }]
       -readonly [K in keyof A]: FromTTypeArg<A[K]>;
@@ -33,23 +36,22 @@ export type FromTTypeString<T> =
   FromTTypePrim<T>
 
 export type TArgNode<T> =
-  | TTypePrim
-  | Arr<TTypePrim>
-  | Arr<Arr<TTypePrim>>
-  | [Arr<TTypePrim>, ...TTypePrim[]]
-  | readonly [{ [K in keyof T]: TArgNode<T[K]> }, ...TTypePrim[]]
-  | { [K in keyof T]: TArgNode<T[K]> }
+  | TTypePrim // PRIM
+  | Arr<TTypePrim> // [PRIM]
+  | Arr<Arr<TTypePrim>> // [[PRIM]]
+  | [Arr<TTypePrim>, ...TTypePrim[]] // [[PRIM], ...PRIM]
+  | [[{ [K in keyof T]: TArgNode<T[K]> }, ...TTypePrim[]]] // [[{}, ...PRIM]]
+  | readonly [ readonly [{ [K in keyof T]: TArgNode<T[K]> }, ...TTypePrim[]]] // ^ but readonly
+  | [Arr<{ [K in keyof T]: TArgNode<T[K]> }>, ...TTypePrim[]] // [{}, ...PRIM]
+  | readonly [{ [K in keyof T]: TArgNode<T[K]> }, ...TTypePrim[]] // ^ but readonly
+  | { [K in keyof T]: TArgNode<T[K]> } // {}
 
-export type TNode<
-  T extends TType[] = TType[],
-  C extends { [key: string]: TNode } | undefined = { [key: string]: TNode } | undefined,
-  CC extends TType[] = TType[],
-> = {
-  types: T;
-  /** Child types (for non-array objects). */
-  children?: C;
+export type TNode = {
+  types: TType[];
+  /** Child types (for non-array objects, or arrays of objects). */
+  children?: { [key: string]: TNode } | undefined;
   /** Child types (for arrays). */
-  contents?: CC;
+  contents?: TType[];
 }
 
 export type TType =
@@ -87,6 +89,8 @@ export type isTypeOpts = {
   ignore_extra?: boolean;
 }
 
+type IsTypeOnFail = (reason: string) => void
+
 export function create_template<T extends TArgNode<any>>(arg: T): TNode {
   const node: TNode = {
     types: [],
@@ -118,13 +122,35 @@ export function create_template<T extends TArgNode<any>>(arg: T): TNode {
         if (item.length === 0) { throw new Error('Empty array.'); }
 
         // Validate array types
+        let array_object_index = -1;
         for (let j = 0; j < item.length; j++) {
-          if (!isTTypePrim(item[j])) { throw new Error(`Invalid type: ${item[j]}`); }
+          if (!isTTypePrim(item[j])) {
+            if (getTType(item[j]) === 'object') {
+              if (array_object_index !== -1) { throw new Error(`An array can only contain one object (array index: ${array_index}, object index in sub-array: ${array_object_index})`); }
+              array_object_index = j;
+            } else { throw new Error(`Invalid type: ${item[j]}`); }
+          }
           if (item.indexOf(item[j], j + 1) >= 0) { throw new Error(`Duplicate type: ${item[j]}`); }
         }
 
         node.types.push('array');
         node.contents = [ ...item ];
+
+        // Array of objects
+        if (array_object_index !== -1) {
+          node.contents[array_object_index] = 'object';
+
+          node.children = {};
+  
+          const obj = item[array_object_index];
+
+          const keys = Object.keys(obj);
+          for (let j = 0; j < keys.length; j++) {
+            const key = keys[j];
+
+            node.children[key] = create_template(obj[key as keyof T] as any);
+          }
+        }
       }
       // Object
       else if (typeof item === 'object' && item !== null) {
@@ -171,19 +197,6 @@ export function create_template<T extends TArgNode<any>>(arg: T): TNode {
   return node;
 }
 
-function isTTypePrim(value: unknown): value is TTypePrim {
-  switch (value) {
-    case 'boolean':
-    case 'number':
-    case 'string':
-    case 'null':
-    case 'undefined':
-      return true;
-    default:
-      return false;
-  }
-}
-
 // @TODO Make it optional to copy missing/invalid values from A (so it becomes a dif instead of a new & updated A)
 export function merge_state<T>(t: TNode, a: T, b: DeepPartial<T>, opts?: MergeStateOpts): T {
   if (a === b) { return a as any; }
@@ -203,11 +216,15 @@ export function merge_state<T>(t: TNode, a: T, b: DeepPartial<T>, opts?: MergeSt
     case 'array': {
       if (!t.contents) { throw new Error('T is missing "contents". This means the template is invalid!'); }
 
+      if (t.contents.indexOf('object') !== -1) {
+        throw new Error(`Template has a node that is an array of objects. Merging arrays of objects is not supported. This may be supported in the future.`);
+      }
+
       const a_array = a as any as unknown[];
       const b_array = b as any as unknown[];
 
       let not_equal = false;
-  
+
       if (getTType(a) === 'array' && a_array.length === b_array.length) {
         for (let i = 0; i < a_array.length; i++) {
           if (a_array[i] !== b_array[i]) {
@@ -231,6 +248,9 @@ export function merge_state<T>(t: TNode, a: T, b: DeepPartial<T>, opts?: MergeSt
           if (t.contents.indexOf(val_type) === -1) {
             if (opts?.ignore_type) { return a as any; }
             throw new Error(`B[${i}] is not of an accepted type for T (B[${i}]: ${val_type}, T: ${typesToString(t.contents)})`);
+          }
+          if (val_type === 'object') {
+            throw new Error(`B[${i}] is an object. Merging arrays of objects is not supported.`);
           }
         }
 
@@ -304,7 +324,7 @@ export function merge_state<T>(t: TNode, a: T, b: DeepPartial<T>, opts?: MergeSt
   }
 }
 
-export function is_type<T>(t: TNode, v: unknown, opts?: isTypeOpts, on_fail: (reason: string) => void = noop): v is T {
+export function is_type<T>(t: TNode, v: unknown, opts?: isTypeOpts, on_fail: IsTypeOnFail = noop): v is T {
   const v_type = getTType(v);
 
   if (v_type === undefined) {
@@ -330,39 +350,17 @@ export function is_type<T>(t: TNode, v: unknown, opts?: isTypeOpts, on_fail: (re
           on_fail(`V[${i}] is not of an accepted type for T (V[${i}]: ${item_type}, T: ${typesToString(t.contents)})`); // or B[i] is just undefined
           return false;
         }
+
+        if (item_type === 'object') {
+          if (!is_type_object(t, item, opts, on_fail)) { return false; }
+        }
       }
 
       return true;
     } break;
 
-    case 'object': {
-      if (!t.children) { throw new Error('T is missing "children". This means the template is invalid!'); }
-
-      const v_object = v as any as { [key: string]: unknown; };
-
-      for (const key in t.children) {
-        if (t.children[key].types.indexOf('undefined') !== -1) { continue; }
-
-        if (!(key in v_object)) {
-          on_fail(`V is missing a key that is required in T (key: "${key}")`);
-          return false;
-        }
-      }
-
-      const keys_v = Object.keys(v_object);
-
-      for (const key of keys_v) {
-        if (!(key in t.children)) {
-          if (opts?.ignore_extra) { continue; }
-          on_fail(`V has a key that is not present in T (key: "${key}")`);
-          return false;
-        }
-
-        if (!is_type(t.children[key], v_object[key], opts, on_fail)) { return false; }
-      }
-
-      return true;
-    } break;
+    case 'object':
+      return is_type_object(t, v, opts, on_fail);
 
     // Primitives
     case 'boolean':
@@ -376,6 +374,48 @@ export function is_type<T>(t: TNode, v: unknown, opts?: isTypeOpts, on_fail: (re
       throw new Error('Type of T is undefined. This means the template is invalid!');
     default:
       throw new Error(`Type "${v_type}" is not implemented!`);
+  }
+}
+
+function is_type_object(t: TNode, v: unknown, opts?: isTypeOpts, on_fail: IsTypeOnFail = noop): boolean {
+  if (!t.children) { throw new Error('T is missing "children". This means the template is invalid!'); }
+
+  const v_object = v as any as { [key: string]: unknown; };
+
+  for (const key in t.children) {
+    if (t.children[key].types.indexOf('undefined') !== -1) { continue; }
+
+    if (!(key in v_object)) {
+      on_fail(`V is missing a key that is required in T (key: "${key}")`);
+      return false;
+    }
+  }
+
+  const keys_v = Object.keys(v_object);
+
+  for (const key of keys_v) {
+    if (!(key in t.children)) {
+      if (opts?.ignore_extra) { continue; }
+      on_fail(`V has a key that is not present in T (key: "${key}")`);
+      return false;
+    }
+
+    if (!is_type(t.children[key], v_object[key], opts, on_fail)) { return false; }
+  }
+
+  return true;
+}
+
+function isTTypePrim(value: unknown): value is TTypePrim {
+  switch (value) {
+    case 'boolean':
+    case 'number':
+    case 'string':
+    case 'null':
+    case 'undefined':
+      return true;
+    default:
+      return false;
   }
 }
 

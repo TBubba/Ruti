@@ -130,6 +130,7 @@ Merge ``b`` into ``a`` and return the result. No argument is modified by this fu
 
 * ``b`` is not of a type listed in ``template.types``.
 * ``b`` is an array, and contains a value of a type not that is not listed in ``template.contents``.
+* ``b`` is an array, and ``template.contents`` contains ``object`` (because merging arrays of objects is not supported!).
 * ``b`` is an object, and contains a property that is not listed in ``template.children`` (unless ``opts.ignore_extra`` is ``true``).
 * ``b`` is an object, and contains a property that is listed in ``template.children``, but the types of the properties does not match.
 * ``b`` is an object, ``a`` is not an object, and ``b`` does not contain every property listed in ``template.children``.
@@ -182,6 +183,9 @@ Each value can be one of the following:
   - Example: ``{ z: { w: 'string' } }`` => ``{ z: { w: string } }``
 
 Notes:
-* Unions can only contain at most one object or array.
-* Arrays only support primitive types (no nested arrays and no objects).
-* Ruti treats ``null`` as its own primitive (even though it's treated as an ``object`` by Javascript)
+* Unions can only contain at most one object or array (``[['string'], { x: 'number' }]`` is forbidden).
+* Arrays only support primitive types and _up to_ one object. No nested arrays!
+  - ``[[ { x: 'number' } ]]`` and ``[[ { x: 'number' }, 'string' ]]`` are fine.
+  - ``[[ { x: 'number' }, { y: 'string' } ]]`` and ``[[ { x: 'number' }, ['string'] ]]`` are forbidden.
+* Arrays with objects are _NOT_ supported by ``merge_state`` (because I haven't decided what way they should merge).
+* Ruti treats ``null`` as its own primitive (even though it's treated as an ``object`` by Javascript).
