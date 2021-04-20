@@ -200,6 +200,28 @@ describe('create_template', () => {
       expect(() => create_template([[{ x: 'string' }, { y: 'number' }]]))
       .toThrowError();
     });
+
+    test('Array and primitive unions', () => {
+      expect(create_template([['string'], 'number']))
+      .toEqual({
+        types: ['array', 'number'],
+        children: undefined,
+        contents: ['string'],
+      });
+
+      expect(create_template([[{ x: 'string' }], 'null']))
+      .toEqual({
+        types: ['array', 'null'],
+        children: {
+          x: {
+            types: ['string'],
+            children: undefined,
+            contents: undefined,
+          },
+        },
+        contents: ['object'],
+      });
+    });
   });
 
   describe('Object', () => {
@@ -412,7 +434,7 @@ describe('merge_state', () => {
   });
 
   describe('Array', () => {
-    test('Primitive array - Valid values', () => {
+    test('Array of primitives - Valid values', () => {
       for (const type of primitives) {
         const template = create_template([[type]]);
 
@@ -426,7 +448,7 @@ describe('merge_state', () => {
       }
     });
 
-    test('Primitive array - Invalid values', () => {
+    test('Array of primitives - Invalid values', () => {
       for (const type_a of primitives) {
         const template = create_template(type_a);
 
@@ -448,7 +470,7 @@ describe('merge_state', () => {
       }
     });
 
-    test('Primitive union array - Only valid values', () => {
+    test('Array of primitive unions - Only valid values', () => {
       forEachUniqueCombo(primitives, 1, primitives.length, types_a => {
         const template = create_template([types_a]);
 
@@ -464,7 +486,7 @@ describe('merge_state', () => {
       });
     });
 
-    test('Primitive union array - Only invalid values', () => {
+    test('Array of primitive unions - Only invalid values', () => {
       forEachUniqueCombo(primitives, 1, primitives.length, types_a => {
         const template = create_template([types_a]);
 
@@ -480,9 +502,9 @@ describe('merge_state', () => {
       });
     });
 
-    test.todo('Primitive union array - Mixed valid and invalid values');
+    test.todo('Array of primitive unions - Mixed valid and invalid values');
 
-    test('Object array - not supported', () => {
+    test('Array of objects - not supported', () => {
       const template = create_template([[{ x: 'string' }]]);
 
       expect(() => merge_state(template, [], []))
@@ -498,7 +520,7 @@ describe('merge_state', () => {
       .toThrowError();
     });
 
-    test('Object and primitive union array - not supported', () => {
+    test('Array of object and primitives unions - not supported', () => {
       const template = create_template([[{ x: 'string' }, 'number']] as const);
 
       expect(() => merge_state(template, [], []))
