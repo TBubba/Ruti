@@ -46,6 +46,8 @@ export type TArgNode<T> =
   | readonly [ readonly [{ [K in keyof T]: TArgNode<T[K]> }, ...TTypePrim[]]] // ^ but readonly
   | [Arr<{ [K in keyof T]: TArgNode<T[K]> }>, ...TTypePrim[]] // [{}, ...PRIM]
   | readonly [{ [K in keyof T]: TArgNode<T[K]> }, ...TTypePrim[]] // ^ but readonly
+  | [Arr<TTypePrim>, { [K in keyof T]: TArgNode<T[K]> }] // [[PRIM], {}]
+  | readonly [Arr<TTypePrim>, { readonly [K in keyof T]: TArgNode<T[K]> }] // ^ but readonly
   | { [K in keyof T]: TArgNode<T[K]> } // {}
 
 export type TNode = {
@@ -109,6 +111,7 @@ export function create_template<T extends TArgNode<any>>(arg: T): TNode {
   else if (Array.isArray(arg)) {
     let array_index = -1;
     let object_index = -1;
+    let array_object_index = -1;
 
     if (arg.length === 0) { throw new Error('Empty union array.'); }
 
@@ -117,18 +120,17 @@ export function create_template<T extends TArgNode<any>>(arg: T): TNode {
 
       // Array
       if (Array.isArray(item)) {
-        if (array_index  >= 0) { throw new Error(`No more than one array can be used in a union (first array index: ${array_index}, second array index: ${i}).`); }
-        if (object_index >= 0) { throw new Error(`A union can only contain one object or array (object index: ${object_index}, array index: ${i}).`); }
+        if (array_index >= 0) { throw new Error(`No more than one array can be used in a union (first array index: ${array_index}, second array index: ${i}).`); }
         array_index = i;
         
         if (item.length === 0) { throw new Error('Empty array.'); }
 
         // Validate array types
-        let array_object_index = -1;
         for (let j = 0; j < item.length; j++) {
           if (!isTTypePrim(item[j])) {
             if (getTType(item[j]) === 'object') {
               if (array_object_index !== -1) { throw new Error(`An array can only contain one object (array index: ${array_index}, object index in sub-array: ${array_object_index})`); }
+              if (object_index !== -1) { throw new Error(`Unions may not contain more than one objects. This union contains one object as well as another object as part of an array (array index: ${array_index}, object index in sub-array: ${array_object_index}, object index: ${object_index})`); }
               array_object_index = j;
             } else { throw new Error(`Invalid type: ${item[j]}`); }
           }
@@ -157,7 +159,7 @@ export function create_template<T extends TArgNode<any>>(arg: T): TNode {
       // Object
       else if (typeof item === 'object' && item !== null) {
         if (object_index >= 0) { throw new Error(`No more than one object can be used in a union (first object index: ${object_index}, second object index: ${i}).`); }
-        if (array_index  >= 0) { throw new Error(`A union can only contain one object or array (array index: ${array_index}, object index: ${i}).`); }
+        if (array_object_index !== -1) { throw new Error(`Unions may not contain more than one objects. This union contains one object as well as another object as part of an array (array index: ${array_index}, object index in sub-array: ${array_object_index}, object index: ${object_index})`); }
         object_index = i;
         
         node.types.push('object');

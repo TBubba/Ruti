@@ -183,7 +183,9 @@ Each value can be one of the following:
   - Example: ``{ z: { w: 'string' } }`` => ``{ z: { w: string } }``
 
 Notes:
-* Unions can only contain at most one object or array (``[['string'], { x: 'number' }]`` is forbidden).
+* Unions may not contain more than one object (including inside an array if it is part of the union).
+  - ``[[ { x: 'number' } ], 'string']`` and ``[[ 'number' ], { y: 'string' }]`` are fine.
+  - ``[[ { x: 'number' } ], { y: 'string' }]`` is forbidden.
 * Arrays only support primitive types and _up to_ one object. No nested arrays!
   - ``[[ { x: 'number' } ]]`` and ``[[ { x: 'number' }, 'string' ]]`` are fine.
   - ``[[ { x: 'number' }, { y: 'string' } ]]`` and ``[[ { x: 'number' }, ['string'] ]]`` are forbidden.

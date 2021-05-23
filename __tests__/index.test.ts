@@ -372,7 +372,30 @@ describe('create_template', () => {
       }
     });
 
-    test.todo('Array & Object union');
+    test('Array & Object union', () => {
+      for (let i = 0; i < primitives.length; i++) {
+        const array_type = primitives[i];
+
+        for (let j = 0; j < primitives.length; j++) {
+          const object_type = primitives[j];
+
+          expect(create_template([[array_type], { value: object_type }]))
+          .toEqual({
+            types: ['array', 'object'],
+            children: {
+              value: {
+                types: [object_type],
+                children: undefined,
+                contents: undefined,
+              },
+            },
+            contents: [array_type],
+          });
+        }
+      }
+    });
+
+    expect(() => create_template([[{ x: 'number' }], { y: 'string' }] as any)).toThrow();
   });
 });
 
@@ -1026,7 +1049,39 @@ describe('is_type', () => {
       });
     });
 
-    test.todo('Array & Object union');
+    test('Array & Object union', () => {
+      // @TODO Test mixed unions
+
+      for (let i = 0; i < primitives.length; i++) {
+        const template_array_type = primitives[i];
+
+        for (let j = 0; j < primitives.length; j++) {
+          const template_object_type = primitives[j];
+
+          const template = create_template([[template_array_type], { value: template_object_type }]);
+
+          expect(is_type(template, [])).toStrictEqual(true);
+
+          for (let k = 0; k < primitives.length; k++) {
+            const value_type = primitives[k];
+            const values = type_values[value_type];
+            const is_valid = (value_type === template_array_type);
+            for (const value of values) {
+              expect(is_type(template, [value])).toStrictEqual(is_valid);
+            }
+          }
+
+          for (let k = 0; k < primitives.length; k++) {
+            const value_type = primitives[k];
+            const values = type_values[value_type];
+            const is_valid = (value_type === template_object_type);
+            for (const value of values) {
+              expect(is_type(template, { value })).toStrictEqual(is_valid);
+            }
+          }
+        }
+      }
+    });
   });
 
 });
