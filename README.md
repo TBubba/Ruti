@@ -1,6 +1,6 @@
 **WORK IN PROGRESS!**
 
-Ruti is still in development. I won't call it production ready, but the test coverage is close to 100% and I've been using it in production for months (). Everything is subject to change, so pay close attention when updating (even between semver patches)!
+Ruti is still in development. I won't call it production ready, but the test coverage is close to 100% and I've been using it in production for months. Everything is subject to change, so pay close attention when updating (even between semver patches)!
 
 ---
 
