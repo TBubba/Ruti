@@ -1,14 +1,22 @@
+**WORK IN PROGRESS!**
+
+Ruti is still in development. I won't call it production ready, but the test coverage is close to 100% and I've been using it in production for months (). Everything is subject to change, so pay close attention when updating (even between semver patches)!
+
+---
+
 # Ruti
 
-**WORK IN PROGRESS! NOT READY FOR PRODUCTION!**
+Ruti is a TypeScript library for type checking at runtime.
 
-## Purpose
+## Introduction
 
-Your code is not robust unless it operates on the data it was designed for. TypeScript solves this issue for data that originates from your own project. But any data that is unknowable at compile time can not be type checked by TypeScript (such as responses from REST APIs or JSON files).
+TypeScript is missing one major feature: _runtime type checking_. This library is an attempt at solving this issue.
 
-The robust way to ensure type safety is to type check all "unsafe" data before operating on it (obviously). This could, for example, be done by setting the type of "unsafe" data to ``unknown`` and then doing various type checks (``typeof``, ``Array.isArray`` etc.) until the TypeScript compiler doesn't find any errors. But writing and maintaining code like this can be very time-consuming (as well as incredibly boring).
+But to do type checking at runtime you first need to make your types accessible at runtime. A simple way to achieve this is to declare your types as JavaScript values inside your code _instead_ of TypeScript types, and to then generate TypeScript types from those values. That way you can use the TypeScript types as usual, but you can also use the JavaScript values at runtime. This is the approach Ruti takes.
 
-Ruti attempts to solve this by having one generic algorithm for type checking a wide variety of data types. So all you have to do is declare the types (in a somewhat weird way) and call a couple functions.
+The JavaScript values, later referred to as ``Arg`` (placeholder name!), are human-readable and resemble TypeScript type declarations somewhat. Because they are optimized for human usability they are not used directly for type checking. Instead they are used to generate machine friendly data structures, referred to as ``Templates``. These ``templates``, together with the generated TypeScript types and the value you want to type check, can then be passed to Ruti's type checking function at any time in your code for runtime type checking!
+
+I'm also experimenting with ways of safely merging two objects of the same type (``merge_state``).
 
 ## Examples
 
@@ -18,10 +26,13 @@ Use ``npm run example <name>`` to run an example (replace ``<name>`` with ``help
 
 ## Quickstart
 
+The following code is also hosted on [CodeSandbox](https://codesandbox.io/s/ruti-playground-e4zpg?file=/src/index.ts), in case you prefer a more interactive experience.
+
 ### Setting up a template
 
 ```ts
 // Create a type declaration object
+// (The somewhat weird way you declare types for Ruti)
 const person_arg = {
   name: 'string',
   age: 'number',
@@ -33,9 +44,10 @@ const person_arg = {
 } as const;
 
 // Generate a template
+// (Creates machine-friendly data from the human-readable data)
 const person_template = create_template(person_arg);
 
-// Optional: Generate a type
+// Generate a TypeScript type
 type Person = FromTTypeArg<typeof person_arg>
 ```
 
@@ -74,9 +86,11 @@ const person = {
   nicknames: ['Mr J'],
 };
 
-if (is_type(person_template, person)) {
-  // person is a real person!
-  // (is_type uses a type guard, so TypeScript knows that person is of type Person)
+if (is_type<Person>(person_template, person)) {
+  // Note: is_type uses a type guard, so "person" is of type "Person" inside this scope!
+  console.log(`"person" is a Person! Their name is ${person.name}.`);
+} else {
+  console.log('"person" is not a Person. :(');
 }
 ```
 
