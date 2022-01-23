@@ -98,6 +98,11 @@ export type isTypeOpts = {
 
 type IsTypeOnFail = (reason: string) => void
 
+// Perf: This could be replaced with a module scoped stack array to reduce garbage
+type IsTypeContext = {
+  stack: (string | number)[]; // string = key of object, number = index of array
+}
+
 export function create_template<T extends TArgNode<any>>(arg: T): TNode {
   const node: TNode = {
     types: [],
@@ -331,21 +336,29 @@ export function merge_state<T>(t: TNode, a: T, b: DeepPartial<T>, opts?: MergeSt
   }
 }
 
+const DEFAULT_IS_TYPE_OPTIONS: isTypeOpts = {
+  ignore_extra: false,
+};
+
 export function is_type<T>(t: TNode, v: unknown, opts?: isTypeOpts, on_fail: IsTypeOnFail = noop): v is T {
+  return is_type_internal(t, v, opts || DEFAULT_IS_TYPE_OPTIONS, on_fail, { stack: [] });
+}
+
+function is_type_internal<T>(t: TNode, v: unknown, opts: isTypeOpts, on_fail: IsTypeOnFail, context: IsTypeContext): v is T {
   const v_type = getTType(v);
 
   if (v_type === undefined) {
-    on_fail('Type of V is not implemented');
+    on_fail(`Type of V is not implemented (stack: ${stackToString(context)})`);
     return false;
   }
   if (t.types.indexOf(v_type) === -1) {
-    on_fail(`V is not of an accepted type for T (type of V: ${v_type}, type of T: ${tnodeToString(t)})`);
+    on_fail(`V is not of an accepted type for T (type of V: ${v_type}, type of T: ${tnodeToString(t)}, stack: ${stackToString(context)})`);
     return false;
   }
 
   switch (v_type) {
     case 'array': {
-      if (!t.contents) { throw new Error('T is missing "contents". This means the template is invalid!'); }
+      if (!t.contents) { throw new Error(`T is missing "contents". This means the template is invalid! (stack: ${stackToString(context)})`); }
 
       const v_array = v as any as unknown[];
 
@@ -354,12 +367,14 @@ export function is_type<T>(t: TNode, v: unknown, opts?: isTypeOpts, on_fail: IsT
         const item_type = getTType(item);
 
         if (t.contents.indexOf(item_type as any) === -1) {
-          on_fail(`V[${i}] is not of an accepted type for T (V[${i}]: ${item_type}, T: ${typesToString(t.contents)})`); // or B[i] is just undefined
+          on_fail(`V[${i}] is not of an accepted type for T (V[${i}]: ${item_type}, T: ${typesToString(t.contents)}, stack: ${stackToString(context)})`); // or B[i] is just undefined
           return false;
         }
 
         if (item_type === 'object') {
-          if (!is_type_object(t, item, opts, on_fail)) { return false; }
+          context.stack.push(i);
+          if (!is_type_object(t, item, opts, on_fail, context)) { return false; }
+          context.stack.pop();
         }
       }
 
@@ -367,7 +382,7 @@ export function is_type<T>(t: TNode, v: unknown, opts?: isTypeOpts, on_fail: IsT
     } break;
 
     case 'object':
-      return is_type_object(t, v, opts, on_fail);
+      return is_type_object(t, v, opts, on_fail, context);
 
     // Primitives
     case 'boolean':
@@ -378,14 +393,14 @@ export function is_type<T>(t: TNode, v: unknown, opts?: isTypeOpts, on_fail: IsT
       return true; // no need to compare primitives
 
     case undefined:
-      throw new Error('Type of T is undefined. This means the template is invalid!');
+      throw new Error(`Type of T is undefined. This means the template is invalid! (stack: ${stackToString(context)})`);
     default:
-      throw new Error(`Type "${v_type}" is not implemented!`);
+      throw new Error(`Type "${v_type}" is not implemented! (stack: ${stackToString(context)})`);
   }
 }
 
-function is_type_object(t: TNode, v: unknown, opts?: isTypeOpts, on_fail: IsTypeOnFail = noop): boolean {
-  if (!t.children) { throw new Error('T is missing "children". This means the template is invalid!'); }
+function is_type_object(t: TNode, v: unknown, opts: isTypeOpts, on_fail: IsTypeOnFail, context: IsTypeContext): boolean {
+  if (!t.children) { throw new Error(`T is missing "children". This means the template is invalid! (stack: ${stackToString(context)})`); }
 
   const v_object = v as any as { [key: string]: unknown; };
 
@@ -393,7 +408,7 @@ function is_type_object(t: TNode, v: unknown, opts?: isTypeOpts, on_fail: IsType
     if (t.children[key].types.indexOf('undefined') !== -1) { continue; }
 
     if (!(key in v_object)) {
-      on_fail(`V is missing a key that is required in T (key: "${key}")`);
+      on_fail(`V is missing a key that is required in T (key: "${key}", stack: ${stackToString(context)})`);
       return false;
     }
   }
@@ -402,12 +417,14 @@ function is_type_object(t: TNode, v: unknown, opts?: isTypeOpts, on_fail: IsType
 
   for (const key of keys_v) {
     if (!(key in t.children)) {
-      if (opts?.ignore_extra) { continue; }
-      on_fail(`V has a key that is not present in T (key: "${key}")`);
+      if (opts.ignore_extra) { continue; }
+      on_fail(`V has a key that is not present in T (key: "${key}", stack: ${stackToString(context)})`);
       return false;
     }
 
-    if (!is_type(t.children[key], v_object[key], opts, on_fail)) { return false; }
+    context.stack.push(key);
+    if (!is_type_internal(t.children[key], v_object[key], opts, on_fail, context)) { return false; }
+    context.stack.pop();
   }
 
   return true;
@@ -446,6 +463,23 @@ function tnodeToString(node: TNode): string {
 
 function typesToString(types: unknown[]): string {
   return `[${types.join(', ')}]`;
+}
+
+function stackToString(context: IsTypeContext): string {
+  let str = '';
+
+  if (context.stack.length > 0) {
+    str += context.stack[0];
+
+    for (let i = 1; i < context.stack.length; i++) {
+      const name_or_index = context.stack[i];
+      str += (typeof name_or_index === 'number')
+        ? `[${name_or_index}]`
+        : `.${name_or_index}`;
+    }
+  }
+
+  return str;
 }
 
 function noop() {}
