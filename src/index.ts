@@ -88,7 +88,7 @@ export type MergeStateOpts = {
   ignore_type?: boolean;
 }
 
-export type isTypeOpts = {
+export type IsTypeOpts = {
   /**
    * Ignore properties that exist in V but not in T (instead of throwing an error).
    * Defaults to false.
@@ -336,15 +336,15 @@ export function merge_state<T>(t: TNode, a: T, b: DeepPartial<T>, opts?: MergeSt
   }
 }
 
-const DEFAULT_IS_TYPE_OPTIONS: isTypeOpts = {
+const DEFAULT_IS_TYPE_OPTIONS: IsTypeOpts = {
   ignore_extra: false,
 };
 
-export function is_type<T>(t: TNode, v: unknown, opts?: isTypeOpts, on_fail: IsTypeOnFail = noop): v is T {
+export function is_type<T>(t: TNode, v: unknown, opts?: IsTypeOpts, on_fail: IsTypeOnFail = noop): v is T {
   return is_type_internal(t, v, opts || DEFAULT_IS_TYPE_OPTIONS, on_fail, { stack: [] });
 }
 
-function is_type_internal<T>(t: TNode, v: unknown, opts: isTypeOpts, on_fail: IsTypeOnFail, context: IsTypeContext): v is T {
+function is_type_internal<T>(t: TNode, v: unknown, opts: IsTypeOpts, on_fail: IsTypeOnFail, context: IsTypeContext): v is T {
   const v_type = getTType(v);
 
   if (v_type === undefined) {
@@ -399,7 +399,7 @@ function is_type_internal<T>(t: TNode, v: unknown, opts: isTypeOpts, on_fail: Is
   }
 }
 
-function is_type_object(t: TNode, v: unknown, opts: isTypeOpts, on_fail: IsTypeOnFail, context: IsTypeContext): boolean {
+function is_type_object(t: TNode, v: unknown, opts: IsTypeOpts, on_fail: IsTypeOnFail, context: IsTypeContext): boolean {
   if (!t.children) { throw new Error(`T is missing "children". This means the template is invalid! (stack: ${stackToString(context)})`); }
 
   const v_object = v as any as { [key: string]: unknown; };

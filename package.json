@@ -1,6 +1,6 @@
 {
   "name": "ruti",
-  "version": "0.0.15",
+  "version": "0.0.16",
   "description": "Runtime type checking",
   "main": "dist/index.js",
   "scripts": {
