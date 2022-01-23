@@ -1,28 +1,60 @@
-import { is_type } from '../../src';
+import { create_template, FromTTypeArg, is_type } from '../../src';
 import * as api from './api';
-import { math_result_template } from './api_templates';
 
-// In this example we will use is_type to check if the functions from a third party api
-// actually returns the types its type declarations says it should.
-
-// Assume that api.ts is a third party API that you suspect has incorrect type declarations.
-
-// Before we begin we need to create a templates for the return types of the api's functions.
-// In this example there is only one type returned by the api, see api_templates.ts.
-// (For more information about templates, see ruti's README)
+/*
+ * In this example we will use is_type to check if the return values of some third party
+ * functions actually are of the correct data types.
+ * 
+ * Assume that api.ts is a third party API and that you don't trust their documentation or
+ * type declarations (which you probably shouldn't).
+ */
 
 
 
-// Basic usage:
-// Here we use is_type just to see if the returned value from the api is correctly typed.
-// If is_type returns true then the value is correctly typed, otherwise it is incorrect in some way.
-// For this example addNumber has a bug that makes it set result.text to undefined if the sum is 0.
+/*
+ * Before we begin type checking we need to create some ruti templates, one for each type
+ * you want to type check. Luckily for us the example API only has a single type (how nice).
+ * (For more information about templates, see ruti's README)
+ */
+
+const math_result_arg = {
+  value: 'number',
+  text: 'string',
+} as const;
+const math_result_template = create_template(math_result_arg);
+type MathResultData = FromTTypeArg<typeof math_result_arg>
+
+const complicated_arg = {
+  points: [[{
+    x: 'number',
+    y: 'number',
+    meta: {
+      favorite_colors: [[{
+        color_name: 'string',
+        hex_value: 'number',
+      }]],
+    },
+  }]],
+} as const;
+const compliated_template = create_template(complicated_arg);
+type ComplicatedData = FromTTypeArg<typeof complicated_arg>
+
+
+
+/*
+ * Basic usage:
+ * 
+ * Here we use is_type to type check the return value from one of the API functions.
+ * If is_type returns true then the value is of the correct type. Otherwise it is incorrect in some way.
+ * 
+ * I made it so addNumber returns data of the correct types AS LONG AS the sum of the arguments is not 0.
+ * When it's 0, addNumber will set result.text to undefined (instead of a string).
+ */
 
 console.log('--- basic usage ---');
 
 {
   const first_sum = api.addNumbers(2, 2); // The sum is 4, so first_sum.text will be a string
-
   console.log('first_sum:', first_sum);
 
   if (is_type(math_result_template, first_sum)) { // true
@@ -32,7 +64,6 @@ console.log('--- basic usage ---');
   }
 
   const second_sum = api.addNumbers(0, 0); // Uh oh! The sum is 0, so second_sum.text will be undefined!
-
   console.log('second_sum:', second_sum);
 
   if (is_type(math_result_template, second_sum)) { // false (because second_sum.text is undefined when it is supposed to be a string)
@@ -44,15 +75,22 @@ console.log('--- basic usage ---');
 
 
 
-// on_fail callback:
-// The 4th argument of is_type is a callback that is called if the value does not conform to the template.
-// It has one argument which is a string containing the reason for why the value failed the type check.
+/*
+ * on_fail callback:
+ * 
+ * is_type accepts a callback (called on_fail) which gets called when a value is of the incorrect type.
+ * on_fail takes one argument, which is a string containing the reason for why the value failed the type check.
+ * 
+ * If you're wondering why this is a callback and not the return value of is_type, it's because is_type is a "type guard"
+ * which means it has to return a boolean (unless you're willing to do some wacky type casting, which I'm not).
+ * 
+ * I strongly recommend using this callback since it can help you debug errors in the template or type checked values.
+ */
 
 console.log('\n--- on_fail callback ---');
 
 {
   const sum = api.addNumbers(0, 0); // Uh oh! The sum is 0, so sum.text will be undefined!
-
   console.log('sum:', sum);
 
   let reason: string | undefined;
@@ -60,14 +98,28 @@ console.log('\n--- on_fail callback ---');
     console.log('sum is incorrectly typed!');
     console.log('Reason:', reason);
   }
+
+  // Bonus example of a more complex template!
+
+  const complex_data = api.complexOperation(false);
+  console.log('complex:', complex_data);
+
+  if (!is_type(compliated_template, complex_data, undefined, r => { reason = r; })) {
+    console.log('complex is incorrectly typed!');
+    console.log('Reason:', reason);
+  }
 }
 
 
 
-// ignore_extra:
-// The 3rd argument of is_type is an options object. At the moment it has only one option which is ignore_extra.
-// By default is_type will return false if the value is an object and has a property that is not declared in the template.
-// But when ignore_extra is set to true, it will instead ignore these properties.
+/*
+ * ignore_extra:
+ * 
+ * is_type accepts an optional options object. At the moment it has only one option which is ignore_extra.
+ * 
+ * By default is_type will fail the type check if any object in the value has a property that is not declared in the template.
+ * To disable this, set ignore_extra to true.
+ */
 
 console.log('\n--- ignore_extra ---');
 
