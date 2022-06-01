@@ -47,6 +47,10 @@ export type TArgNode<T> =
   |          [readonly [{ [K in keyof T]: TArgNode<T[K]> }, ...TTypePrim[]]] // ^ but readonly (inner)
   | readonly [         [{ [K in keyof T]: TArgNode<T[K]> }, ...TTypePrim[]]] // ^ but readonly (outer)
   | readonly [readonly [{ [K in keyof T]: TArgNode<T[K]> }, ...TTypePrim[]]] // ^ but readonly (both)
+  |          [         [{ [K in keyof T]: TArgNode<T[K]> }, ...TTypePrim[]], ...TTypePrim[]] // [[{}, ...PRIM], ...PRIM]
+  |          [readonly [{ [K in keyof T]: TArgNode<T[K]> }, ...TTypePrim[]], ...TTypePrim[]] // ^ but readonly (inner)
+  | readonly [         [{ [K in keyof T]: TArgNode<T[K]> }, ...TTypePrim[]], ...TTypePrim[]] // ^ but readonly (outer)
+  | readonly [readonly [{ [K in keyof T]: TArgNode<T[K]> }, ...TTypePrim[]], ...TTypePrim[]] // ^ but readonly (both)
   |          [{ [K in keyof T]: TArgNode<T[K]> }, ...TTypePrim[]] // [{}, ...PRIM]
   | readonly [{ [K in keyof T]: TArgNode<T[K]> }, ...TTypePrim[]] // ^ but readonly
   |          [Arr<TTypePrim>, { [K in keyof T]: TArgNode<T[K]> }] // [[PRIM], {}]
