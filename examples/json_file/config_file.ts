@@ -1,4 +1,4 @@
-import { create_template, FromTTypeArg } from '../../src';
+import { create_template, type FromTTypeArg } from '../../src/index.ts';
 
 const config_arg = {
   /** Volume of the audio. */

@@ -1,5 +1,7 @@
-import { create_template, FromTTypeArg, FromTTypeString, is_type, merge_state, TArgNode, TNode, TType, TTypePrim } from '../src';
-import { forEachUniqueCombo } from '../tooling/loop';
+import * as assert from "node:assert";
+import { describe, test } from "node:test";
+import { create_template, type FromTTypeArg, type FromTTypeString, is_type, merge_state, type TArgNode, type TNode, type TType, type TTypePrim } from "../src/index.ts";
+import { forEachUniqueCombo } from "../tooling/loop.ts";
 
 const advanced = ['object', 'array'] as const;
 
@@ -25,11 +27,10 @@ describe('internal', () => {
   
       let index = 0;
       forEachUniqueCombo(array, 0, array.length, (indices) => {
-        expect(indices)
-        .toStrictEqual(values[index++]);
+        assert.deepStrictEqual(indices, values[index++]);
       });
 
-      expect(index).toStrictEqual(values.length);
+      assert.strictEqual(index, values.length);
     });
 
     test('Length 1', () => {
@@ -38,11 +39,10 @@ describe('internal', () => {
   
       let index = 0;
       forEachUniqueCombo(array, 0, array.length, (indices) => {
-        expect(indices)
-        .toStrictEqual(values[index++]);
+        assert.deepStrictEqual(indices, values[index++]);
       });
 
-      expect(index).toStrictEqual(values.length);
+      assert.strictEqual(index, values.length);
     });
 
     test('Length 2', () => {
@@ -51,11 +51,10 @@ describe('internal', () => {
   
       let index = 0;
       forEachUniqueCombo(array, 0, array.length, (indices) => {
-        expect(indices)
-        .toStrictEqual(values[index++]);
+        assert.deepStrictEqual(indices, values[index++]);
       });
 
-      expect(index).toStrictEqual(values.length);
+      assert.strictEqual(index, values.length);
     });
 
     test('Length 3', () => {
@@ -69,11 +68,10 @@ describe('internal', () => {
   
       let index = 0;
       forEachUniqueCombo(array, 0, array.length, (indices) => {
-        expect(indices)
-        .toStrictEqual(values[index++]);
+        assert.deepStrictEqual(indices, values[index++]);
       });
 
-      expect(index).toStrictEqual(values.length);
+      assert.strictEqual(index, values.length);
     });
 
     test('Length 4', () => {
@@ -88,11 +86,10 @@ describe('internal', () => {
   
       let index = 0;
       forEachUniqueCombo(array, 0, array.length, (indices) => {
-        expect(indices)
-        .toStrictEqual(values[index++]);
+        assert.deepStrictEqual(indices, values[index++]);
       });
 
-      expect(index).toStrictEqual(values.length);
+      assert.strictEqual(index, values.length);
     });
 
     test('Length 4 - Different values', () => {
@@ -107,11 +104,10 @@ describe('internal', () => {
   
       let index = 0;
       forEachUniqueCombo(array, 0, array.length, (indices) => {
-        expect(indices)
-        .toStrictEqual(values[index++]);
+        assert.deepStrictEqual(indices, values[index++]);
       });
 
-      expect(index).toStrictEqual(values.length);
+      assert.strictEqual(index, values.length);
     });
   });
 });
@@ -120,22 +116,19 @@ describe('create_template', () => {
   describe('Primitive', () => {
     test('Single primitive', () => {
       for (const type of primitives) {
-        expect(create_template(type))
-        .toEqual({ types: [type] });
+        assert.deepStrictEqual(create_template(type), { types: [type], children: undefined, contents: undefined });
       }
     });
 
     test('Empty union', () => {
-      expect(() => create_template([]))
-      .toThrowError();
+      assert.throws(() => create_template([]));
     });
 
     test('Unions', () => {
       for (let count = 1; count <= primitives.length; count++) {
         const arg = primitives.slice(0, count);
   
-        expect(create_template(arg))
-        .toEqual({ types: arg });
+        assert.deepStrictEqual(create_template(arg), { types: arg, children: undefined, contents: undefined });
       }
     });
   
@@ -144,25 +137,23 @@ describe('create_template', () => {
         const arg = primitives.slice(0, count);
         arg.push(primitives[count - 1]);
   
-        expect(() => create_template(arg))
-        .toThrowError();
+        assert.throws(() => create_template(arg));
       }
     });
   });
 
   describe('Array', () => {
     test('Empty array', () => {
-      expect(() => create_template([[]]))
-      .toThrowError();
+      assert.throws(() => create_template([[]]));
     });
 
     test('Array of primitive unions', () => {
       for (let count = 1; count <= primitives.length; count++) {
         const types = primitives.slice(0, count);
   
-        expect(create_template([types]))
-        .toEqual({
+        assert.deepStrictEqual(create_template([types]), {
           types: ['array'],
+          children: undefined,
           contents: types,
         });
       }
@@ -173,19 +164,16 @@ describe('create_template', () => {
         const types = primitives.slice(0, count);
         types.push(primitives[count - 1]);
   
-        expect(() => create_template([types]))
-        .toThrowError();
+        assert.throws(() => create_template([types]));
       }
     });
 
     test('Union of arrays', () => {
-      expect(() => create_template([['number'], ['string']]))
-      .toThrowError();
+      assert.throws(() => create_template([['number'], ['string']]));
     });
 
     test('Array of objects', () => {
-      expect(create_template([[{ x: 'string' }]]))
-      .toEqual({
+      assert.deepStrictEqual(create_template([[{ x: 'string' }]]), {
         types: ['array'],
         children: {
           x: {
@@ -197,20 +185,17 @@ describe('create_template', () => {
         contents: ['object'],
       });
       
-      expect(() => create_template([[{ x: 'string' }, { y: 'number' }]]))
-      .toThrowError();
+      assert.throws(() => create_template([[{ x: 'string' }, { y: 'number' }]]));
     });
 
     test('Array and primitive unions', () => {
-      expect(create_template([['string'], 'number']))
-      .toEqual({
+      assert.deepStrictEqual(create_template([['string'], 'number']), {
         types: ['array', 'number'],
         children: undefined,
         contents: ['string'],
       });
 
-      expect(create_template([[{ x: 'string' }], 'null']))
-      .toEqual({
+      assert.deepStrictEqual(create_template([[{ x: 'string' }], 'null']), {
         types: ['array', 'null'],
         children: {
           x: {
@@ -226,10 +211,10 @@ describe('create_template', () => {
 
   describe('Object', () => {
     test('Empty object', () => {
-      expect(create_template({}))
-      .toEqual({
+      assert.deepStrictEqual(create_template({}), {
         types: ['object'],
         children: {},
+        contents: undefined,
       });
     });
 
@@ -250,12 +235,13 @@ describe('create_template', () => {
     
           arg[name] = type;
           template.children![name] = {
-            types: [type]
+            types: [type],
+            children: undefined,
+            contents: undefined,
           };
         }
 
-        expect(create_template(arg))
-        .toEqual(template);
+        assert.deepStrictEqual(create_template(arg), template);
       }
     });
 
@@ -277,12 +263,12 @@ describe('create_template', () => {
           arg[name] = [[type]];
           template.children![name] = {
             types: ['array'],
+            children: undefined,
             contents: [type],
           };
         }
 
-        expect(create_template(arg))
-        .toEqual(template);
+        assert.deepStrictEqual(create_template(arg), template);
       }
     });
 
@@ -304,12 +290,18 @@ describe('create_template', () => {
           arg[name] = { [name]: type };
           template.children![name] = {
             types: ['object'],
-            children: { [name]: { types: [type] } },
+            children: {
+              [name]: {
+                types: [type],
+                children: undefined,
+                contents: undefined,
+              },
+            },
+            contents: undefined,
           };
         }
 
-        expect(create_template(arg))
-        .toEqual(template);
+        assert.deepStrictEqual(create_template(arg), template);
       }
     });
   });
@@ -322,8 +314,7 @@ describe('create_template', () => {
         for (let count = 1; count < primitives.length; count++) {
           const primitive_types = primitives.slice(0, count);
 
-          expect(create_template([[array_type], ...primitive_types]))
-          .toEqual({
+          assert.deepStrictEqual(create_template([[array_type], ...primitive_types]), {
             types: ['array', ...primitive_types],
             children: undefined,
             contents: [array_type],
@@ -339,10 +330,15 @@ describe('create_template', () => {
         for (let count = 1; count < primitives.length; count++) {
           const primitive_types = primitives.slice(0, count);
 
-          expect(create_template([{ x: object_type }, ...primitive_types]))
-          .toEqual({
+          assert.deepStrictEqual(create_template([{ x: object_type }, ...primitive_types]), {
             types: ['object', ...primitive_types],
-            children: { x: { types: [object_type] } },
+            children: {
+              x: {
+                types: [object_type],
+                children: undefined,
+                contents: undefined,
+              },
+            },
             contents: undefined,
           });
         }
@@ -356,8 +352,7 @@ describe('create_template', () => {
         for (let count = 1; count < primitives.length; count++) {
           const primitive_types = primitives.slice(0, count);
 
-          expect(create_template([[{ [array_type]: array_type }], ...primitive_types]))
-          .toEqual({
+          assert.deepStrictEqual(create_template([[{ [array_type]: array_type }], ...primitive_types]), {
             types: ['array', ...primitive_types],
             children: {
               [array_type]: {
@@ -379,8 +374,7 @@ describe('create_template', () => {
         for (let j = 0; j < primitives.length; j++) {
           const object_type = primitives[j];
 
-          expect(create_template([[array_type], { value: object_type }]))
-          .toEqual({
+          assert.deepStrictEqual(create_template([[array_type], { value: object_type }]), {
             types: ['array', 'object'],
             children: {
               value: {
@@ -395,7 +389,7 @@ describe('create_template', () => {
       }
     });
 
-    expect(() => create_template([[{ x: 'number' }], { y: 'string' }] as any)).toThrow();
+    assert.throws(() => create_template([[{ x: 'number' }], { y: 'string' }] as any));
   });
 });
 
@@ -414,11 +408,9 @@ describe('merge_state', () => {
             for (const value_b of type_values[type_b]) {
 
               if (is_valid) {
-                expect(merge_state(template, value_a, value_b as any))
-                .toStrictEqual(value_b);
+                assert.strictEqual(merge_state(template, value_a, value_b as any), value_b);
               } else {
-                expect(() => merge_state(template, value_a, value_b as any))
-                .toThrowError();
+                assert.throws(() => merge_state(template, value_a, value_b as any));
               }
 
             }
@@ -441,11 +433,9 @@ describe('merge_state', () => {
               for (const value_b of type_values[type_b]) {
 
                 if (is_valid) {
-                  expect(merge_state(template, value_a, value_b as any))
-                  .toStrictEqual(value_b);
+                  assert.strictEqual(merge_state(template, value_a, value_b as any), value_b);
                 } else {
-                  expect(() => merge_state(template, value_a, value_b as any))
-                  .toThrowError();
+                  assert.throws(() => merge_state(template, value_a, value_b as any));
                 }
 
               }
@@ -464,8 +454,7 @@ describe('merge_state', () => {
         // @TODO: Use "forEachUniqueCombo" for both loops here
         for (const content_a of type_values[type]) {
           for (const content_b of type_values[type]) {
-            expect(merge_state(template, [content_a], [content_b]))
-            .toStrictEqual([content_b]);
+            assert.deepStrictEqual(merge_state(template, [content_a], [content_b]), [content_b]);
           }
         }
       }
@@ -482,11 +471,9 @@ describe('merge_state', () => {
             const value_a = [content_a];
 
             for (const content_b of type_values[type_b]) {
-              expect(() => merge_state(template, value_a, content_b as any))
-              .toThrowError();
+              assert.throws(() => merge_state(template, value_a, content_b as any));
 
-              expect(() => merge_state(template, value_a, [content_b] as any))
-              .toThrowError();
+              assert.throws(() => merge_state(template, value_a, [content_b] as any));
             }
           }
         }
@@ -502,8 +489,7 @@ describe('merge_state', () => {
 
         forEachUniqueCombo(value_pool, 0, types_a.length, values_a => {
           forEachUniqueCombo(value_pool, 0, types_a.length, values_b => {
-            expect(merge_state(template, values_a, values_b))
-            .toStrictEqual(values_b);
+            assert.deepStrictEqual(merge_state(template, values_a, values_b), values_b);
           });
         });
       });
@@ -519,8 +505,7 @@ describe('merge_state', () => {
         types_b.forEach(type => { value_pool_b.push(...type_values[type]) });
 
         forEachUniqueCombo(value_pool_b, 1, value_pool_b.length, values_b => {
-          expect(() => merge_state(template, [], values_b as any))
-          .toThrowError();
+          assert.throws(() => merge_state(template, [], values_b as any));
         });
       });
     });
@@ -530,42 +515,31 @@ describe('merge_state', () => {
     test('Array of objects - not supported', () => {
       const template = create_template([[{ x: 'string' }]]);
 
-      expect(() => merge_state(template, [], []))
-      .toThrowError();
+      assert.throws(() => merge_state(template, [], []));
 
-      expect(() => merge_state(template, [{ x: 'a' }], []))
-      .toThrowError();
+      assert.throws(() => merge_state(template, [{ x: 'a' }], []));
 
-      expect(() => merge_state(template, [{ x: 'a' }], [{ x: 'b' }]))
-      .toThrowError();
+      assert.throws(() => merge_state(template, [{ x: 'a' }], [{ x: 'b' }]));
 
-      expect(() => merge_state(template, [], [{ x: 'b' }] as any))
-      .toThrowError();
+      assert.throws(() => merge_state(template, [], [{ x: 'b' }] as any));
     });
 
     test('Array of object and primitives unions - not supported', () => {
       const template = create_template([[{ x: 'string' }, 'number']] as const);
 
-      expect(() => merge_state(template, [], []))
-      .toThrowError();
+      assert.throws(() => merge_state(template, [], []));
 
-      expect(() => merge_state(template, [{ x: 'a' }], []))
-      .toThrowError();
+      assert.throws(() => merge_state(template, [{ x: 'a' }], []));
 
-      expect(() => merge_state(template, [{ x: 'a' }], [{ x: 'b' }]))
-      .toThrowError();
+      assert.throws(() => merge_state(template, [{ x: 'a' }], [{ x: 'b' }]));
 
-      expect(() => merge_state(template, [], [{ x: 'b' }] as any))
-      .toThrowError();
+      assert.throws(() => merge_state(template, [], [{ x: 'b' }] as any));
 
-      expect(() => merge_state(template, [1], []))
-      .toThrowError();
+      assert.throws(() => merge_state(template, [1], []));
 
-      expect(() => merge_state(template, [1], [2]))
-      .toThrowError();
+      assert.throws(() => merge_state(template, [1], [2]));
 
-      expect(() => merge_state(template, [], [2] as any))
-      .toThrowError();
+      assert.throws(() => merge_state(template, [], [2] as any));
     });
   });
 
@@ -573,20 +547,17 @@ describe('merge_state', () => {
     test('Empty object', () => {
       const template = create_template({});
 
-      expect(merge_state(template, {}, {}))
-      .toStrictEqual({});
+      assert.deepStrictEqual(merge_state(template, {}, {}), {});
       
       for (const type of all_types) {
         for (const value of type_values[type]) {
-          expect(() => merge_state(template, {}, { x: value }))
-          .toThrowError();
+          assert.throws(() => merge_state(template, {}, { x: value }));
         }
       }
       
       for (const type of all_types) {
         for (const value of type_values[type]) {
-          expect(merge_state(template, {}, { x: value }, { ignore_extra: true }))
-          .toStrictEqual({});
+          assert.deepStrictEqual(merge_state(template, {}, { x: value }, { ignore_extra: true }), {});
         }
       }
     });
@@ -606,8 +577,7 @@ describe('merge_state', () => {
           (value as any)[type] = type_values[type][0];
         }
 
-        expect(merge_state(template, {}, value))
-        .toStrictEqual(value);
+        assert.deepStrictEqual(merge_state(template, {}, value), value);
       });
     });
 
@@ -622,18 +592,15 @@ describe('merge_state', () => {
 
           const value_b = { x: type_values[type_b][0] };
 
-          expect(() => merge_state(template, value_a, value_b as any))
-          .toThrowError();
+          assert.throws(() => merge_state(template, value_a, value_b as any));
         }
       }
     });
 
     test('Missing value & Unexpected value', () => {
-      expect(() => merge_state(create_template({ x: 'number' }), { x: 0 }, { y: 0 } as any))
-      .toThrowError();
+      assert.throws(() => merge_state(create_template({ x: 'number' }), { x: 0 }, { y: 0 } as any));
 
-      expect(() => merge_state(create_template({ x: 'undefined' }), { x: undefined }, { y: 0 } as any))
-      .toThrowError();
+      assert.throws(() => merge_state(create_template({ x: 'undefined' }), { x: undefined }, { y: 0 } as any));
     });
   });
 
@@ -652,11 +619,9 @@ describe('merge_state', () => {
             const is_valid = types_b.every(type_b => (types_a_array as string[]).indexOf(type_b) !== -1);
 
             if (is_valid) {
-              expect(merge_state(template, [], value as any))
-              .toStrictEqual(value);
+              assert.deepStrictEqual(merge_state(template, [], value as any), value);
             } else {
-              expect(() => merge_state(template, [], value as any))
-              .toThrowError();
+              assert.throws(() => merge_state(template, [], value as any));
             }
           });
 
@@ -669,11 +634,9 @@ describe('merge_state', () => {
               const is_valid = (types_a_prim as string[]).indexOf(type_b) !== -1;
 
               if (is_valid) {
-                expect(merge_state(template, [], value as any))
-                .toStrictEqual(value);
+                assert.deepStrictEqual(merge_state(template, [], value as any), value);
               } else {
-                expect(() => merge_state(template, [], value as any))
-                .toThrowError();
+                assert.throws(() => merge_state(template, [], value as any));
               }
             }
           }
@@ -686,7 +649,7 @@ describe('merge_state', () => {
 
       const all_names = ['x', 'y', 'z', 'v', 'w'];
       
-      expect(all_names.length).toStrictEqual(primitives.length); // Make sure there are enough names!
+      assert.strictEqual(all_names.length, primitives.length); // Make sure there are enough names!
 
       forEachUniqueCombo(primitives, 1, primitives.length, types_a_object => {
         forEachUniqueCombo(primitives, 1, primitives.length, types_a_prim => {
@@ -733,11 +696,9 @@ describe('merge_state', () => {
             }
 
             if (is_valid) {
-              expect(merge_state(template, {}, value as any))
-              .toStrictEqual(value);
+              assert.deepStrictEqual(merge_state(template, {}, value as any), value);
             } else {
-              expect(() => merge_state(template, {}, value as any))
-              .toThrowError();
+              assert.throws(() => merge_state(template, {}, value as any));
             }
           });
 
@@ -750,11 +711,9 @@ describe('merge_state', () => {
               const is_valid = (types_a_prim as string[]).indexOf(type_b) !== -1;
 
               if (is_valid) {
-                expect(merge_state(template, {}, value as any))
-                .toStrictEqual(value);
+                assert.deepStrictEqual(merge_state(template, {}, value as any), value);
               } else {
-                expect(() => merge_state(template, {}, value as any))
-                .toThrowError();
+                assert.throws(() => merge_state(template, {}, value as any));
               }
             }
           }
@@ -768,11 +727,9 @@ describe('merge_state', () => {
 
           const template = create_template([ { x: 'boolean' }, type_prim ]);
 
-          expect(merge_state(template, value_prim, { x: true } as any))
-          .toStrictEqual({ x: true });
+          assert.deepStrictEqual(merge_state(template, value_prim, { x: true } as any), { x: true });
 
-          expect(() => merge_state(template, value_prim, {} as any))
-          .toThrowError();
+          assert.throws(() => merge_state(template, value_prim, {} as any));
         }
       }
     });
@@ -791,7 +748,7 @@ describe('is_type', () => {
           const is_valid = type_t === type_v;
 
           for (const value_v of type_values[type_v]) {
-            expect(is_type(template, value_v)).toStrictEqual(is_valid);
+            assert.strictEqual(is_type(template, value_v), is_valid);
           }
         }
       }
@@ -807,7 +764,7 @@ describe('is_type', () => {
           const is_valid = (types_t as string[]).indexOf(type_v) !== -1;            
 
           for (const value_v of type_values[type_v]) {
-            expect(is_type(template, value_v)).toStrictEqual(is_valid);
+            assert.strictEqual(is_type(template, value_v), is_valid);
           }
         }
       });
@@ -820,7 +777,7 @@ describe('is_type', () => {
         const template = create_template([[type]]);
 
         forEachUniqueCombo(type_values[type] as any[], 1, type_values[type].length, value => {
-          expect(is_type(template, value)).toStrictEqual(true);
+          assert.strictEqual(is_type(template, value), true);
         });
       }
     });
@@ -833,7 +790,7 @@ describe('is_type', () => {
           if (type_t === type_v) { continue; } // Skip valid
 
           forEachUniqueCombo(type_values[type_v] as any[], 1, type_values[type_v].length, value => {
-            expect(is_type(template, value)).toStrictEqual(false);
+            assert.strictEqual(is_type(template, value), false);
           });
         }
       }
@@ -847,7 +804,7 @@ describe('is_type', () => {
         types.forEach(type => { all_valid_values.push(...type_values[type]) });
 
         forEachUniqueCombo(all_valid_values, 0, types.length, values => {
-          expect(is_type(template, values)).toStrictEqual(true);
+          assert.strictEqual(is_type(template, values), true);
         });
       });
     });
@@ -862,7 +819,7 @@ describe('is_type', () => {
         types_v.forEach(type => { all_invalid_values.push(...type_values[type]) });
 
         forEachUniqueCombo(all_invalid_values, 1, all_invalid_values.length, values => {
-          expect(is_type(template, values)).toStrictEqual(false);
+          assert.strictEqual(is_type(template, values), false);
         });
       });
     });
@@ -873,24 +830,24 @@ describe('is_type', () => {
       let template: TNode;
 
       template = create_template([[ { x: 'string' } ]]);
-      expect(is_type(template, [])).toStrictEqual(true);
-      expect(is_type(template, [{ x: 'a' }])).toStrictEqual(true);
-      expect(is_type(template, [{ x: 1 }])).toStrictEqual(false);
-      expect(is_type(template, [{}])).toStrictEqual(false);
+      assert.strictEqual(is_type(template, []), true);
+      assert.strictEqual(is_type(template, [{ x: 'a' }]), true);
+      assert.strictEqual(is_type(template, [{ x: 1 }]), false);
+      assert.strictEqual(is_type(template, [{}]), false);
     });
 
     test('Object and primitive array', () => {
       let template: TNode;
 
       template = create_template([[ { x: 'string' }, 'number' ]]);
-      expect(is_type(template, [])).toStrictEqual(true);
-      expect(is_type(template, [{ x: 'a' }])).toStrictEqual(true);
-      expect(is_type(template, [{ x: 1 }])).toStrictEqual(false);
-      expect(is_type(template, [{}])).toStrictEqual(false);
-      expect(is_type(template, [0])).toStrictEqual(true);
-      expect(is_type(template, [{ x: 'a' }, 0])).toStrictEqual(true);
-      expect(is_type(template, [{ x: 1 }, 0])).toStrictEqual(false);
-      expect(is_type(template, ['a'])).toStrictEqual(false);
+      assert.strictEqual(is_type(template, []), true);
+      assert.strictEqual(is_type(template, [{ x: 'a' }]), true);
+      assert.strictEqual(is_type(template, [{ x: 1 }]), false);
+      assert.strictEqual(is_type(template, [{}]), false);
+      assert.strictEqual(is_type(template, [0]), true);
+      assert.strictEqual(is_type(template, [{ x: 'a' }, 0]), true);
+      assert.strictEqual(is_type(template, [{ x: 1 }, 0]), false);
+      assert.strictEqual(is_type(template, ['a']), false);
     });
   });
 
@@ -898,17 +855,17 @@ describe('is_type', () => {
     test('Empty object', () => {
       const template = create_template({});
 
-      expect(is_type(template, {})).toStrictEqual(true);
+      assert.strictEqual(is_type(template, {}), true);
       
       for (const type of all_types) {
         for (const value of type_values[type]) {
-          expect(is_type(template, { x: value })).toStrictEqual(false);
+          assert.strictEqual(is_type(template, { x: value }), false);
         }
       }
       
       for (const type of all_types) {
         for (const value of type_values[type]) {
-          expect(is_type(template, { x: value }, { ignore_extra: true })).toStrictEqual(true);
+          assert.strictEqual(is_type(template, { x: value }, { ignore_extra: true }), true);
         }
       }
     });
@@ -924,7 +881,7 @@ describe('is_type', () => {
         const value: any = {};
         types.forEach(type => { value[type] = type_values[type][0]; });
 
-        expect(is_type(template, value)).toStrictEqual(true);
+        assert.strictEqual(is_type(template, value), true);
       });
     });
 
@@ -936,7 +893,7 @@ describe('is_type', () => {
           if (type_t === type_v) { continue; } // Skip valid
 
           for (const value of type_values[type_v]) {
-            expect(is_type(template, { x: value })).toStrictEqual(false);
+            assert.strictEqual(is_type(template, { x: value }), false);
           }
         }
       }
@@ -945,9 +902,9 @@ describe('is_type', () => {
     test.todo('Primitives - Mixed valid and invalid values');
 
     test('Missing value & Unexpected value', () => {
-      expect(is_type(create_template({ x: 'number' }), { y: 0 })).toStrictEqual(false);
+      assert.strictEqual(is_type(create_template({ x: 'number' }), { y: 0 }), false);
 
-      expect(is_type(create_template({ x: 'undefined' }), { y: 0 })).toStrictEqual(false);
+      assert.strictEqual(is_type(create_template({ x: 'undefined' }), { y: 0 }), false);
     });
   });
 
@@ -964,7 +921,7 @@ describe('is_type', () => {
 
             const is_valid = types_v.every(type_v => (types_t_array as string[]).indexOf(type_v) !== -1);
 
-            expect(is_type(template, value)).toStrictEqual(is_valid);
+            assert.strictEqual(is_type(template, value), is_valid);
           });
 
           // Non-array values
@@ -972,9 +929,9 @@ describe('is_type', () => {
             if (type_v === 'array') { continue; }
 
             for (const value of type_values[type_v]) {
-              const is_valid = (types_t_prim as string[]).indexOf(type_v) !== -1;
+              const is_valid: boolean = (types_t_prim as string[]).indexOf(type_v) !== -1;
 
-              expect(is_type(template, value)).toStrictEqual(is_valid);
+              assert.strictEqual(is_type(template, value), is_valid);
             }
           }
         });
@@ -987,7 +944,7 @@ describe('is_type', () => {
 
       const all_names = ['x', 'y', 'z', 'v', 'w'];
 
-      expect(all_names.length).toStrictEqual(primitives.length); // Make sure there are enough names!
+      assert.strictEqual(all_names.length, primitives.length); // Make sure there are enough names!
 
       forEachUniqueCombo(primitives, 1, primitives.length, types_t_object => {
         forEachUniqueCombo(primitives, 1, primitives.length, types_t_prim => {
@@ -1032,7 +989,7 @@ describe('is_type', () => {
               }
             }
 
-            expect(is_type(template, value)).toStrictEqual(is_valid);
+            assert.strictEqual(is_type(template, value), is_valid);
           });
 
           // Non-object values
@@ -1040,9 +997,9 @@ describe('is_type', () => {
             if (type_v === 'object') { continue; }
 
             for (const value of type_values[type_v]) {
-              const is_valid = (types_t_prim as string[]).indexOf(type_v) !== -1;
+              const is_valid: boolean = (types_t_prim as string[]).indexOf(type_v) !== -1;
 
-              expect(is_type(template, value)).toStrictEqual(is_valid);
+              assert.strictEqual(is_type(template, value), is_valid);
             }
           }
         });
@@ -1060,14 +1017,14 @@ describe('is_type', () => {
 
           const template = create_template([[template_array_type], { value: template_object_type }]);
 
-          expect(is_type(template, [])).toStrictEqual(true);
+          assert.strictEqual(is_type(template, []), true);
 
           for (let k = 0; k < primitives.length; k++) {
             const value_type = primitives[k];
             const values = type_values[value_type];
             const is_valid = (value_type === template_array_type);
             for (const value of values) {
-              expect(is_type(template, [value])).toStrictEqual(is_valid);
+              assert.strictEqual(is_type(template, [value]), is_valid);
             }
           }
 
@@ -1076,7 +1033,7 @@ describe('is_type', () => {
             const values = type_values[value_type];
             const is_valid = (value_type === template_object_type);
             for (const value of values) {
-              expect(is_type(template, { value })).toStrictEqual(is_valid);
+              assert.strictEqual(is_type(template, { value }), is_valid);
             }
           }
         }

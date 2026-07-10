@@ -1,6 +1,6 @@
-import * as fs from 'fs';
-import { merge_state, TNode } from '../../src';
-import { config_template, createConfigData } from './config_file';
+import * as fs from "node:fs";
+import { merge_state, type TNode } from "../../src/index.ts";
+import { config_template, createConfigData } from "./config_file.ts";
 
 /*
  * In this example we will load an untrusted JSON file and use merge_state to:
@@ -34,6 +34,7 @@ async function parseJsonFile<T>(filepath: string, create: () => T, template: TNo
     data = await fs.promises.readFile(filepath, { encoding: 'utf8' });
   } catch (error) {
     console.error(`Failed to read data from file "${filepath}".`, error);
+    throw error;
   }
 
   let parsed_data: any;

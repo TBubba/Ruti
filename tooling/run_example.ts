@@ -1,6 +1,6 @@
-import * as fs from 'fs';
-import * as path from 'path';
-import * as child_process from 'child_process';
+import * as child_process from "node:child_process";
+import * as fs from "node:fs";
+import * as path from "node:path";
 
 const cmd = 'npm run example';
 
@@ -21,21 +21,22 @@ async function main() {
       return;
     }
 
-    const examples_directory = path.resolve(__dirname, '../examples');
+    const examples_directory = path.resolve(import.meta.dirname!, '../examples');
 
     const example_path = path.join(examples_directory, example_name);
-    
+
     if (!example_path.startsWith(example_path)) {
       console.log(`The example name must not contain "../"! For help run "${cmd}"`);
       return;
     }
 
-    if (!await exists(path.join(example_path, 'index.ts'))) {
+    const example_entry_path = path.join(example_path, 'index.ts');
+    if (!await exists(example_entry_path)) {
       console.log(`The example was not found. For help run "${cmd}"`);
       return;
     }
 
-    child_process.fork(example_path, [], { cwd: example_path });
+    child_process.fork(example_entry_path, [], { cwd: example_path });
   }
 }
 
