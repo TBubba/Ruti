@@ -1,3 +1,5 @@
+type TODO_any = any; // @TODO This type is used to patch stuff that broke when updating TypeScript :<
+
 type DeepPartial<T> = {
   [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K]
 }
@@ -146,11 +148,11 @@ export function create_template<T extends TArgNode<any>>(arg: T): TNode {
               array_object_index = j;
             } else { throw new Error(`Invalid type: ${item[j]}`); }
           }
-          if (item.indexOf(item[j], j + 1) >= 0) { throw new Error(`Duplicate type: ${item[j]}`); }
+          if (item.indexOf((item as TODO_any)[j], j + 1) >= 0) { throw new Error(`Duplicate type: ${item[j]}`); }
         }
 
         node.types.push('array');
-        node.contents = [ ...item ];
+        node.contents = [ ...(item as TODO_any) ];
 
         // Array of objects
         if (array_object_index !== -1) {
@@ -164,7 +166,7 @@ export function create_template<T extends TArgNode<any>>(arg: T): TNode {
           for (let j = 0; j < keys.length; j++) {
             const key = keys[j];
 
-            node.children[key] = create_template(obj[key as keyof T] as any);
+            node.children[key] = create_template((obj as TODO_any)[key as keyof typeof obj] as any);
           }
         }
       }
@@ -181,13 +183,13 @@ export function create_template<T extends TArgNode<any>>(arg: T): TNode {
         for (let j = 0; j < keys.length; j++) {
           const key = keys[j];
 
-          node.children[key] = create_template(item[key as keyof T] as any);
+          node.children[key] = create_template((item as TODO_any)[key as keyof typeof item] as any);
         }
       }
       // Primitive
       else {
         if (!isTTypePrim(item)) { throw new Error(`Invalid type: ${item}`); }
-        if (arg.indexOf(item, i + 1) >= 0) { throw new Error(`Duplicate type: ${item}`); }
+        if (arg.indexOf(item as TODO_any, i + 1) >= 0) { throw new Error(`Duplicate type: ${item}`); }
 
         node.types.push(item);
       }
