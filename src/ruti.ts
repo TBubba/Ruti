@@ -1,3 +1,25 @@
+// ------------------------------ Store Built-ins ------------------------------
+
+// Note: Store built-in methods on module load to prevent later scripts from replacing them.
+//       This safeguards against global & prototype pollution that happens AFTER this code is loaded.
+
+declare const Array: never;
+declare const Object: never;
+
+const Object_assign = (Object as unknown as ObjectConstructor).assign;
+const Object_hasOwn = (Object as unknown as ObjectConstructor).hasOwn;
+const Object_keys   = (Object as unknown as ObjectConstructor).keys;
+
+const Array_isArray = (Array as unknown as ArrayConstructor).isArray;
+
+const Array_join    = (Array as unknown as ArrayConstructor).prototype.join;
+const Array_indexOf = (Array as unknown as ArrayConstructor).prototype.indexOf;
+const Array_push    = (Array as unknown as ArrayConstructor).prototype.push;
+const Array_pop     = (Array as unknown as ArrayConstructor).prototype.pop;
+const Array_slice   = (Array as unknown as ArrayConstructor).prototype.slice;
+
+// ------------------------------ ... ------------------------------
+
 type TODO_any = any; // @TODO This type is used to patch stuff that broke when updating TypeScript :<
 
 type DeepPartial<T> = {
@@ -119,10 +141,10 @@ export function create_template<T extends TArgNode<any>>(arg: T): TNode {
   // Single primitive type
   if (typeof arg === 'string') {
     if (!isTTypePrim(arg)) { throw new Error(`Invalid type: ${arg}`); }
-    node.types.push(arg);
+    Array_push.call(node.types, arg);
   }
   // Union
-  else if (Array.isArray(arg)) {
+  else if (Array_isArray(arg)) {
     let array_index = -1;
     let object_index = -1;
     let array_object_index = -1;
@@ -133,7 +155,7 @@ export function create_template<T extends TArgNode<any>>(arg: T): TNode {
       const item = arg[i];
 
       // Array
-      if (Array.isArray(item)) {
+      if (Array_isArray(item)) {
         if (array_index >= 0) { throw new Error(`No more than one array can be used in a union (first array index: ${array_index}, second array index: ${i}).`); }
         array_index = i;
         
@@ -148,11 +170,13 @@ export function create_template<T extends TArgNode<any>>(arg: T): TNode {
               array_object_index = j;
             } else { throw new Error(`Invalid type: ${item[j]}`); }
           }
-          if (item.indexOf((item as TODO_any)[j], j + 1) >= 0) { throw new Error(`Duplicate type: ${item[j]}`); }
+          if (Array_indexOf.call(item, (item as TODO_any)[j], j + 1) >= 0) {
+            throw new Error(`Duplicate type: ${item[j]}`);
+          }
         }
 
-        node.types.push('array');
-        node.contents = [ ...(item as TODO_any) ];
+        Array_push.call(node.types, 'array');
+        node.contents = Array_slice.call(item) as TODO_any[];
 
         // Array of objects
         if (array_object_index !== -1) {
@@ -162,7 +186,7 @@ export function create_template<T extends TArgNode<any>>(arg: T): TNode {
   
           const obj = item[array_object_index];
 
-          const keys = Object.keys(obj);
+          const keys = Object_keys(obj);
           for (let j = 0; j < keys.length; j++) {
             const key = keys[j];
 
@@ -176,10 +200,10 @@ export function create_template<T extends TArgNode<any>>(arg: T): TNode {
         if (array_object_index !== -1) { throw new Error(`Unions may not contain more than one objects. This union contains one object as well as another object as part of an array (array index: ${array_index}, object index in sub-array: ${array_object_index}, object index: ${object_index})`); }
         object_index = i;
         
-        node.types.push('object');
+        Array_push.call(node.types, 'object');
         node.children = {};
 
-        const keys = Object.keys(item);
+        const keys = Object_keys(item);
         for (let j = 0; j < keys.length; j++) {
           const key = keys[j];
 
@@ -189,18 +213,20 @@ export function create_template<T extends TArgNode<any>>(arg: T): TNode {
       // Primitive
       else {
         if (!isTTypePrim(item)) { throw new Error(`Invalid type: ${item}`); }
-        if (arg.indexOf(item as TODO_any, i + 1) >= 0) { throw new Error(`Duplicate type: ${item}`); }
+        if (Array_indexOf.call(arg, item as TODO_any, i + 1) >= 0) {
+          throw new Error(`Duplicate type: ${item}`);
+        }
 
-        node.types.push(item);
+        Array_push.call(node.types, item);
       }
     }
   }
   // Object
   else if (typeof arg === 'object' && arg !== null) {
-    node.types.push('object');
+    Array_push.call(node.types, 'object');
     node.children = {};
 
-    const keys = Object.keys(arg);
+    const keys = Object_keys(arg);
     for (let i = 0; i < keys.length; i++) {
       const key = keys[i];
 
@@ -225,7 +251,7 @@ export function merge_state<T>(t: TNode, a: T, b: DeepPartial<T>, opts?: MergeSt
     if (opts?.ignore_type) { return a as any; }
     throw new Error(`B is not of an accepted type.`);
   }
-  if (t.types.indexOf(b_type) === -1) {
+  if (Array_indexOf.call(t.types, b_type) === -1) {
     if (opts?.ignore_type) { return a as any; }
     throw new Error(`B is not of an accepted type for T (B: ${b_type}, T: ${tnodeToString(t)})`);
   }
@@ -234,7 +260,7 @@ export function merge_state<T>(t: TNode, a: T, b: DeepPartial<T>, opts?: MergeSt
     case 'array': {
       if (!t.contents) { throw new Error('T is missing "contents". This means the template is invalid!'); }
 
-      if (t.contents.indexOf('object') !== -1) {
+      if (Array_indexOf.call(t.contents, 'object') !== -1) {
         throw new Error(`Template has a node that is an array of objects. Merging arrays of objects is not supported. This may be supported in the future.`);
       }
 
@@ -263,7 +289,7 @@ export function merge_state<T>(t: TNode, a: T, b: DeepPartial<T>, opts?: MergeSt
             if (opts?.ignore_type) { return a as any; }
             throw new Error(`B[${i}] is not of an accepted type.`);
           }
-          if (t.contents.indexOf(val_type) === -1) {
+          if (Array_indexOf.call(t.contents, val_type) === -1) {
             if (opts?.ignore_type) { return a as any; }
             throw new Error(`B[${i}] is not of an accepted type for T (B[${i}]: ${val_type}, T: ${typesToString(t.contents)})`);
           }
@@ -272,7 +298,7 @@ export function merge_state<T>(t: TNode, a: T, b: DeepPartial<T>, opts?: MergeSt
           }
         }
 
-        return [ ...b_array ] as any;
+        return Array_slice.call(b_array) as any;
       } else {
         return a_array as any;
       }
@@ -289,12 +315,16 @@ export function merge_state<T>(t: TNode, a: T, b: DeepPartial<T>, opts?: MergeSt
 
       let d_object: { [key: string]: unknown; } | undefined;
 
-      const keys_b = Object.keys(b_object);
+      const keys_b = Object_keys(b_object);
 
       if (a_is_not_object) {
         for (const key_t in t.children) {
-          if (!(key_t in b_object)) {
-            if (t.children[key_t].types.indexOf('undefined') !== -1) { continue; } // values that can be undefined can also be missing (@TODO Make this an option?)
+          if (!Object_hasOwn(t.children, key_t)) {
+            continue; // Ignore properties up the prototype chain.
+          }
+
+          if (!Object_hasOwn(b_object, key_t)) {
+            if (Array_indexOf.call(t.children[key_t].types, 'undefined') !== -1) { continue; } // values that can be undefined can also be missing (@TODO Make this an option?)
 
             // Note: If A is a non-object and B is an object all keys have to be present.
             // This is because when A is an object it is assumed that it already has all keys (so B may be partial)
@@ -303,8 +333,10 @@ export function merge_state<T>(t: TNode, a: T, b: DeepPartial<T>, opts?: MergeSt
         }
       }
 
-      for (const key of keys_b) {
-        if (!(key in t.children)) {
+      for (let i = 0; i < keys_b.length; i++) {
+        const key = keys_b[i];
+
+        if (!Object_hasOwn(t.children, key)) {
           if (opts?.ignore_extra) { continue; }
           throw new Error(`B has a key that is not present in T (key: "${key}")`);
         }
@@ -313,11 +345,11 @@ export function merge_state<T>(t: TNode, a: T, b: DeepPartial<T>, opts?: MergeSt
 
         const result = merge_state(t.children[key], a_value as any, b_object[key] as any, opts);
 
-        if (a_is_not_object || !(key in a_object) || result !== a_object[key]) {
+        if (a_is_not_object || !Object_hasOwn(a_object, key) || result !== a_object[key]) {
           if (!d_object) {
             d_object = a_is_not_object
               ? {}
-              : { ...a_object };
+              : Object_assign({}, a_object);
           }
 
           d_object[key] = result;
@@ -357,7 +389,7 @@ function is_type_internal<T>(t: TNode, v: unknown, opts: IsTypeOpts, on_fail: Is
     on_fail(`Type of V is not implemented (stack: ${stackToString(context)})`);
     return false;
   }
-  if (t.types.indexOf(v_type) === -1) {
+  if (Array_indexOf.call(t.types, v_type) === -1) {
     on_fail(`V is not of an accepted type for T (type of V: ${v_type}, type of T: ${tnodeToString(t)}, stack: ${stackToString(context)})`);
     return false;
   }
@@ -372,15 +404,15 @@ function is_type_internal<T>(t: TNode, v: unknown, opts: IsTypeOpts, on_fail: Is
         const item = v_array[i];
         const item_type = getTType(item);
 
-        if (t.contents.indexOf(item_type as any) === -1) {
+        if (Array_indexOf.call(t.contents, item_type as any) === -1) {
           on_fail(`V[${i}] is not of an accepted type for T (V[${i}]: ${item_type}, T: ${typesToString(t.contents)}, stack: ${stackToString(context)})`); // or B[i] is just undefined
           return false;
         }
 
         if (item_type === 'object') {
-          context.stack.push(i);
+          Array_push.call(context.stack, i);
           if (!is_type_object(t, item, opts, on_fail, context)) { return false; }
-          context.stack.pop();
+          Array_pop.call(context.stack);
         }
       }
 
@@ -411,26 +443,32 @@ function is_type_object(t: TNode, v: unknown, opts: IsTypeOpts, on_fail: IsTypeO
   const v_object = v as any as { [key: string]: unknown; };
 
   for (const key in t.children) {
-    if (t.children[key].types.indexOf('undefined') !== -1) { continue; }
+    if (!Object_hasOwn(t.children, key)) {
+      continue; // Ignore properties up the prototype chain.
+    }
 
-    if (!(key in v_object)) {
+    if (Array_indexOf.call(t.children[key].types, 'undefined') !== -1) { continue; }
+
+    if (!Object_hasOwn(v_object, key)) {
       on_fail(`V is missing a key that is required in T (key: "${key}", stack: ${stackToString(context)})`);
       return false;
     }
   }
 
-  const keys_v = Object.keys(v_object);
+  const keys_v = Object_keys(v_object);
 
-  for (const key of keys_v) {
-    if (!(key in t.children)) {
+  for (let i = 0; i < keys_v.length; i++) {
+    const key = keys_v[i]; 
+
+    if (!Object_hasOwn(t.children, key)) {
       if (opts.ignore_extra) { continue; }
       on_fail(`V has a key that is not present in T (key: "${key}", stack: ${stackToString(context)})`);
       return false;
     }
 
-    context.stack.push(key);
+    Array_push.call(context.stack, key);
     if (!is_type_internal(t.children[key], v_object[key], opts, on_fail, context)) { return false; }
-    context.stack.pop();
+    Array_pop.call(context.stack);
   }
 
   return true;
@@ -450,7 +488,7 @@ function isTTypePrim(value: unknown): value is TTypePrim {
 }
 
 function getTType(value: unknown): TType | undefined {
-  if (Array.isArray(value)) { return 'array'; }
+  if (Array_isArray(value)) { return 'array'; }
 
   switch (typeof value) {
     case 'object': return (value === null) ? 'null' : 'object';
@@ -464,11 +502,11 @@ function getTType(value: unknown): TType | undefined {
 }
 
 function tnodeToString(node: TNode): string {
-  return `[${node.types.join(', ')}]`;
+  return `[${Array_join.call(node.types, ', ')}]`;
 }
 
 function typesToString(types: unknown[]): string {
-  return `[${types.join(', ')}]`;
+  return `[${Array_join.call(types, ', ')}]`;
 }
 
 function stackToString(context: IsTypeContext): string {

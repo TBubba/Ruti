@@ -1041,4 +1041,72 @@ describe('is_type', () => {
     });
   });
 
+  describe('Edge-cases', () => {
+    test('Do not conflate prototype properties with the objects own properties', () => {
+      assert.doesNotThrow(() => {
+        assert.strictEqual(is_type(create_template({}), { toString: 1 }), false);
+
+        assert.strictEqual(is_type(create_template({}), { valueOf: 1 }), false);
+
+        assert.strictEqual(is_type(create_template({}), { isPrototypeOf: 1 }), false);
+      });
+    });
+
+    test('Do not break on overwritten static methods', () => {
+      assert.doesNotThrow(() => {
+        const original_object_assign = Object.assign;
+        const original_object_hasOwn = Object.hasOwn;
+        const original_object_keys   = Object.keys;
+        const original_array_isArray = Array.isArray;
+        try {
+          Object.assign = () => { assert.fail('Fake Object.assign called!'); };
+          Object.hasOwn = () => { assert.fail('Fake Object.hasOwn called!'); };
+          Object.keys   = () => { assert.fail('Fake Object.keys called!'); };
+          Array.isArray = (() => { assert.fail('Fake Array.isArray called!'); }) as any;
+
+          assert.strictEqual(is_type(create_template({ foo: 'boolean' }), { foo: true }), true);
+
+          assert.strictEqual(is_type(create_template([['string']]), ['hello']), true);
+        } finally {
+          Object.assign = original_object_assign;
+          Object.hasOwn = original_object_hasOwn;
+          Object.keys   = original_object_keys;
+          Array.isArray = original_array_isArray;
+        }
+      });
+    });
+
+    test('Do not break on polluted prototypes', () => {
+      assert.doesNotThrow(() => {
+        const original_object_iterator = (Object.prototype as any)[Symbol.iterator];
+        const original_array_iterator  = (Array.prototype as any)[Symbol.iterator];
+        const original_array_join    = Array.prototype.join;
+        const original_array_indexOf = Array.prototype.indexOf;
+        const original_array_push    = Array.prototype.push;
+        const original_array_pop     = Array.prototype.pop;
+        const original_array_slice   = Array.prototype.slice;
+        try {
+          (Object.prototype as any)[Symbol.iterator] = () => { assert.fail('Fake Object#Symbol(iterator) called!'); };
+          (Array.prototype as any)[Symbol.iterator]  = () => { assert.fail('Fake Array#Symbol(iterator) called!'); };
+          Array.prototype.join    = () => { assert.fail('Fake Array#join called!'); };
+          Array.prototype.indexOf = () => { assert.fail('Fake Array#indexOf called!'); };
+          Array.prototype.push    = () => { assert.fail('Fake Array#push called!'); };
+          Array.prototype.pop     = () => { assert.fail('Fake Array#pop called!'); };
+          Array.prototype.slice   = () => { assert.fail('Fake Array#slice called!'); };
+
+          assert.strictEqual(is_type(create_template({ foo: 'boolean' }), { foo: true }), true);
+
+          assert.strictEqual(is_type(create_template([['string']]), ['hello']), true);
+        } finally {
+          (Object.prototype as any)[Symbol.iterator] = original_object_iterator;
+          (Array.prototype as any)[Symbol.iterator]  = original_array_iterator;
+          Array.prototype.join    = original_array_join;
+          Array.prototype.indexOf = original_array_indexOf;
+          Array.prototype.push    = original_array_push;
+          Array.prototype.pop     = original_array_pop;
+          Array.prototype.slice   = original_array_slice;
+        }
+      });
+    });
+  });
 });
