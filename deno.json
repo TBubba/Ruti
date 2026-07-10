@@ -5,5 +5,12 @@
   "exports": "./src/ruti.ts",
   "imports": {
     "@types/node": "npm:@types/node@24.0.3"
+  },
+  "publish": {
+    "include": [
+      "LICENSE",
+      "README.md",
+      "src/**/*.ts"
+    ]
   }
 }
