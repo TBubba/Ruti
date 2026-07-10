@@ -1,13 +1,12 @@
 {
   "name": "ruti",
-  "version": "0.0.21",
+  "version": "0.0.22",
   "description": "Runtime type checking",
-  "main": "dist/index.js",
+  "main": "src/ruti.ts",
   "type": "module",
   "scripts": {
-    "build": "tsc",
-    "watch": "tsc --watch",
-    "test": "jest",
+    "build": "tsc src/ruti.ts --outDir dist -d",
+    "test": "node --test ./__tests/*",
     "example": "node tooling/run_example.ts"
   },
   "author": "Jesper Gustafsson",
@@ -17,6 +16,9 @@
     "url": "https://github.com/TBubba/Ruti.git"
   },
   "files": [
-    "/dist"
-  ]
+    "/src"
+  ],
+  "devDependencies": {
+    "typescript": "7.0.2"
+  }
 }
