@@ -1,4 +1,4 @@
-import { create_template, type FromTTypeArg } from '../../src/index.ts';
+import { create_template, type FromTTypeArg } from "../../src/ruti.ts";
 
 const config_arg = {
   /** Volume of the audio. */

@@ -30,7 +30,7 @@ async function main() {
       return;
     }
 
-    const example_entry_path = path.join(example_path, 'index.ts');
+    const example_entry_path = path.join(example_path, 'entry.ts');
     if (!await exists(example_entry_path)) {
       console.log(`The example was not found. For help run "${cmd}"`);
       return;

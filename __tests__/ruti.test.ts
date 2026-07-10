@@ -1,6 +1,6 @@
 import * as assert from "node:assert";
 import { describe, test } from "node:test";
-import { create_template, type FromTTypeArg, type FromTTypeString, is_type, merge_state, type TArgNode, type TNode, type TType, type TTypePrim } from "../src/index.ts";
+import { create_template, type FromTTypeArg, type FromTTypeString, is_type, merge_state, type TArgNode, type TNode, type TType, type TTypePrim } from "../src/ruti.ts";
 import { forEachUniqueCombo } from "../tooling/loop.ts";
 
 const advanced = ['object', 'array'] as const;

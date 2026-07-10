@@ -1,5 +1,5 @@
-import { create_template, type FromTTypeArg, is_type } from '../../src/index.ts';
-import * as api from './api.ts';
+import { create_template, type FromTTypeArg, is_type } from "../../src/ruti.ts";
+import * as api from "./api.ts";
 
 /*
  * In this example we will use is_type to check if the return values of some third party

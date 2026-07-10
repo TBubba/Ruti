@@ -1,5 +1,5 @@
 import * as fs from "node:fs";
-import { merge_state, type TNode } from "../../src/index.ts";
+import { merge_state, type TNode } from "../../src/ruti.ts";
 import { config_template, createConfigData } from "./config_file.ts";
 
 /*
