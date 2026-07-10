@@ -1,4 +1,8 @@
 {
+  "name": "@bubba/ruti",
+  "version": "0.0.22",
+  "license": "MIT",
+  "exports": "./src/ruti.ts",
   "imports": {
     "@types/node": "npm:@types/node@24.0.3"
   }
