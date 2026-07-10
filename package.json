@@ -13,7 +13,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/TBubba/Ruti.git"
+    "url": "git+https://github.com/TBubba/Ruti.git"
   },
   "files": [
     "/src"
